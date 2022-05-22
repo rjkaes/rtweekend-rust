@@ -78,12 +78,12 @@ type Color = Vec3;
 
 #[inline(always)]
 const fn vec3(x: f32, y: f32, z: f32) -> Vec3 {
-    Vec3 { x: x, y: y, z: z }
+    Vec3 { x, y, z }
 }
 
 #[inline(always)]
 const fn point3(x: f32, y: f32, z: f32) -> Vec3 {
-    Point3 { x: x, y: y, z: z }
+    Point3 { x, y, z }
 }
 
 #[inline(always)]
@@ -342,7 +342,7 @@ impl Hittable for HittableList {
 
         for object in self.objects.iter() {
             let mut temp_rec = HitRecord::default();
-            if object.hit(&r, t_min, closest_so_far, &mut temp_rec) {
+            if object.hit(r, t_min, closest_so_far, &mut temp_rec) {
                 hit_anything = true;
                 closest_so_far = temp_rec.t;
                 *rec = temp_rec;
@@ -390,12 +390,12 @@ impl Camera {
 
         Camera {
             origin: lookfrom,
-            horizontal: horizontal,
-            vertical: vertical,
+            horizontal,
+            vertical,
             lower_left_corner: origin - horizontal / 2.0 - vertical / 2.0 - focus_dist * w,
-            u: u,
-            v: v,
-            w: w,
+            u,
+            v,
+            w,
             lens_radius: aperture / 2.0,
         }
     }
@@ -460,7 +460,7 @@ struct Metal {
 impl Metal {
     fn new(albedo: Color, fuzz: f32) -> Metal {
         Metal {
-            albedo: albedo,
+            albedo,
             fuzz: if fuzz < 1.0 { fuzz } else { 1.0 },
         }
     }
@@ -593,7 +593,7 @@ fn random_scene() -> HittableList {
     world.add(Box::new(Sphere::new(
         point3(0.0, -1000.0, 0.0),
         1000.0,
-        ground_material.clone(),
+        ground_material,
     )));
 
     let shift = point3(4.0, 0.2, 0.0);
@@ -625,25 +625,17 @@ fn random_scene() -> HittableList {
     }
 
     let material1 = Rc::new(Dielectric::new(1.5));
-    world.add(Box::new(Sphere::new(
-        point3(0.0, 1.0, 0.0),
-        1.0,
-        material1.clone(),
-    )));
+    world.add(Box::new(Sphere::new(point3(0.0, 1.0, 0.0), 1.0, material1)));
 
     let material2 = Rc::new(Lambertian::new(color(0.4, 0.2, 0.1)));
     world.add(Box::new(Sphere::new(
         point3(-4.0, 1.0, 0.0),
         1.0,
-        material2.clone(),
+        material2,
     )));
 
     let material3 = Rc::new(Metal::new(color(0.7, 0.6, 0.5), 0.0));
-    world.add(Box::new(Sphere::new(
-        point3(4.0, 1.0, 0.0),
-        1.0,
-        material3.clone(),
-    )));
+    world.add(Box::new(Sphere::new(point3(4.0, 1.0, 0.0), 1.0, material3)));
 
     world
 }
