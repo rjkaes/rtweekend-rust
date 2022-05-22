@@ -1,10 +1,8 @@
-use auto_ops::{impl_op, impl_op_commutative};
 use rand::Rng;
-use std::f32::consts::PI;
 use std::io;
 use std::rc::Rc;
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Default)]
 struct Vec3 {
     pub x: f32,
     pub y: f32,
@@ -12,115 +10,210 @@ struct Vec3 {
 }
 
 impl Vec3 {
-    fn new(x: f32, y: f32, z: f32) -> Vec3 {
-        Vec3 { x: x, y: y, z: z }
+    #[inline]
+    fn random() -> Vec3 {
+        vec3(random(), random(), random())
     }
 
-    fn dot(u: Vec3, v: Vec3) -> f32 {
-        u.x * v.x + u.y * v.y + u.z * v.z
-    }
-
-    fn cross(u: Vec3, v: Vec3) -> Vec3 {
-        Vec3::new(
-            u.y * v.z - u.z * v.y,
-            u.z * v.x - u.x * v.z,
-            u.x * v.y - u.y * v.x,
+    #[inline]
+    fn random_range(min: f32, max: f32) -> Vec3 {
+        vec3(
+            random_range(min, max),
+            random_range(min, max),
+            random_range(min, max),
         )
     }
 
-    fn reflect(v: Vec3, n: Vec3) -> Vec3 {
-        v - 2.0 * Vec3::dot(v, n) * n
+    #[inline]
+    fn dot(&self, v: &Vec3) -> f32 {
+        self.x * v.x + self.y * v.y + self.z * v.z
     }
 
-    fn refract(uv: Vec3, n: Vec3, etai_over_etat: f32) -> Vec3 {
-        let dot = Vec3::dot(-uv, n);
-        let cos_theta = if dot < 1.0 { dot } else { 1.0 };
-        let r_out_perp = etai_over_etat * (uv + cos_theta * n);
+    #[inline]
+    fn cross(&self, v: &Vec3) -> Vec3 {
+        vec3(
+            self.y * v.z - self.z * v.y,
+            self.z * v.x - self.x * v.z,
+            self.x * v.y - self.y * v.x,
+        )
+    }
+
+    #[inline]
+    fn reflect(&self, n: &Vec3) -> Vec3 {
+        self - 2.0 * self.dot(n) * n
+    }
+
+    fn refract(&self, n: &Vec3, etai_over_etat: f32) -> Vec3 {
+        let cos_theta = f32::min(-self.dot(n), 1.0);
+        let r_out_perp = etai_over_etat * (self + cos_theta * n);
         let r_out_parallel = -1.0 * (1.0 - r_out_perp.length_squared()).abs().sqrt() * n;
 
         r_out_perp + r_out_parallel
     }
 
-    fn random() -> Vec3 {
-        Vec3::new(random(), random(), random())
-    }
-
-    fn random_range(min: f32, max: f32) -> Vec3 {
-        Vec3::new(
-            random_range(min, max),
-            random_range(min, max),
-            random_range(min, max),
-        )
-    }
-
+    #[inline(always)]
     fn unit(&self) -> Vec3 {
         *self / self.length()
     }
 
+    #[inline]
     fn length(&self) -> f32 {
         self.length_squared().sqrt()
     }
 
+    #[inline(always)]
     fn length_squared(&self) -> f32 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
 
+    #[inline]
     fn near_zero(&self) -> bool {
-        let s = 1e-8;
-        self.x.abs() < s && self.y.abs() < s && self.z.abs() < s
+        const S: f32 = 1e-8;
+        self.x.abs() < S && self.y.abs() < S && self.z.abs() < S
     }
 }
 
 type Point3 = Vec3;
 type Color = Vec3;
 
-impl_op!(-|a: Vec3| -> Vec3 { Vec3::new(-a.x, -a.y, -a.z) });
+#[inline(always)]
+const fn vec3(x: f32, y: f32, z: f32) -> Vec3 {
+    Vec3 { x: x, y: y, z: z }
+}
 
-impl_op!(+ |lhs: Vec3, rhs: Vec3| -> Vec3 {
-    Vec3 {
-        x: lhs.x + rhs.x,
-        y: lhs.y + rhs.y,
-        z: lhs.z + rhs.z,
+#[inline(always)]
+const fn point3(x: f32, y: f32, z: f32) -> Vec3 {
+    Point3 { x: x, y: y, z: z }
+}
+
+#[inline(always)]
+const fn color(r: f32, g: f32, b: f32) -> Color {
+    Color { x: r, y: g, z: b }
+}
+
+impl std::ops::Add for Vec3 {
+    type Output = Vec3;
+
+    #[inline]
+    fn add(self, rhs: Vec3) -> Vec3 {
+        &self + rhs
     }
-});
+}
 
-impl_op!(-|lhs: Vec3, rhs: Vec3| -> Vec3 { lhs + (-rhs) });
+impl std::ops::Add<Vec3> for &Vec3 {
+    type Output = Vec3;
 
-impl_op!(*|lhs: Vec3, rhs: Vec3| -> Vec3 {
-    Vec3 {
-        x: lhs.x * rhs.x,
-        y: lhs.y * rhs.y,
-        z: lhs.z * rhs.z,
+    #[inline]
+    fn add(self, rhs: Vec3) -> Vec3 {
+        vec3(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
     }
-});
+}
 
-impl_op_commutative!(*|lhs: Vec3, rhs: f32| -> Vec3 {
-    Vec3 {
-        x: lhs.x * rhs,
-        y: lhs.y * rhs,
-        z: lhs.z * rhs,
+impl std::ops::AddAssign for Vec3 {
+    #[inline]
+    fn add_assign(&mut self, rhs: Vec3) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
     }
-});
+}
 
-impl_op!(/|lhs: Vec3, rhs: f32| -> Vec3 {
-    lhs * (1.0 / rhs)
-});
+impl std::ops::Div<f32> for Vec3 {
+    type Output = Vec3;
 
-impl_op!(+= |lhs: &mut Vec3, rhs: Vec3| {
-    lhs.x += rhs.x;
-    lhs.y += rhs.y;
-    lhs.z += rhs.z;
-});
+    #[inline]
+    fn div(self, rhs: f32) -> Vec3 {
+        self * (1.0 / rhs)
+    }
+}
 
-impl_op!(*= |lhs: &mut Vec3, rhs: f32| {
-    lhs.x *= rhs;
-    lhs.y *= rhs;
-    lhs.z *= rhs;
-});
+impl std::ops::DivAssign<f32> for Vec3 {
+    #[inline]
+    fn div_assign(&mut self, rhs: f32) {
+        *self *= 1.0 / rhs
+    }
+}
 
-impl_op!(/= |lhs: &mut Vec3, rhs: f32| {
-    *lhs *= 1.0 / rhs
-});
+impl std::ops::Mul<Vec3> for Vec3 {
+    type Output = Vec3;
+
+    #[inline]
+    fn mul(self, rhs: Vec3) -> Vec3 {
+        vec3(self.x * rhs.x, self.y * rhs.y, self.z * rhs.z)
+    }
+}
+
+impl std::ops::Mul<f32> for &Vec3 {
+    type Output = Vec3;
+
+    #[inline]
+    fn mul(self, rhs: f32) -> Self::Output {
+        vec3(self.x * rhs, self.y * rhs, self.z * rhs)
+    }
+}
+
+impl std::ops::Mul<f32> for Vec3 {
+    type Output = Self;
+
+    #[inline]
+    fn mul(self, rhs: f32) -> Self::Output {
+        &self * rhs
+    }
+}
+
+impl std::ops::Mul<Vec3> for f32 {
+    type Output = Vec3;
+
+    #[inline]
+    fn mul(self, rhs: Vec3) -> Self::Output {
+        &rhs * self
+    }
+}
+
+impl std::ops::Mul<&Vec3> for f32 {
+    type Output = Vec3;
+
+    #[inline]
+    fn mul(self, rhs: &Vec3) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl std::ops::MulAssign<f32> for Vec3 {
+    #[inline]
+    fn mul_assign(&mut self, rhs: f32) {
+        self.x *= rhs;
+        self.y *= rhs;
+        self.z *= rhs;
+    }
+}
+
+impl std::ops::Neg for Vec3 {
+    type Output = Vec3;
+
+    #[inline]
+    fn neg(self) -> Vec3 {
+        vec3(-self.x, -self.y, -self.z)
+    }
+}
+
+impl std::ops::Sub for Vec3 {
+    type Output = Vec3;
+
+    #[inline]
+    fn sub(self, rhs: Vec3) -> Vec3 {
+        &self - rhs
+    }
+}
+
+impl std::ops::Sub<Vec3> for &Vec3 {
+    type Output = Vec3;
+
+    #[inline]
+    fn sub(self, rhs: Vec3) -> Vec3 {
+        vec3(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
+    }
+}
 
 #[derive(Default)]
 struct Ray {
@@ -134,7 +227,7 @@ impl Ray {
     }
 
     fn at(&self, t: f32) -> Vec3 {
-        self.origin + (t * self.direction)
+        self.origin + t * self.direction
     }
 }
 
@@ -160,7 +253,7 @@ impl Default for HitRecord {
 
 impl HitRecord {
     fn set_face_normal(&mut self, r: &Ray, outward_normal: Vec3) {
-        self.front_face = Vec3::dot(r.direction, outward_normal) < 0.0;
+        self.front_face = r.direction.dot(&outward_normal) < 0.0;
         self.normal = if self.front_face {
             outward_normal
         } else {
@@ -193,7 +286,7 @@ impl Hittable for Sphere {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool {
         let oc = r.origin - self.center;
         let a = r.direction.length_squared();
-        let half_b = Vec3::dot(oc, r.direction);
+        let half_b = oc.dot(&r.direction);
         let c = oc.length_squared() - self.radius * self.radius;
 
         let discriminant = half_b * half_b - a * c;
@@ -216,7 +309,7 @@ impl Hittable for Sphere {
         rec.p = r.at(rec.t);
         let outward_normal = (rec.p - self.center) / self.radius;
         rec.set_face_normal(r, outward_normal);
-        rec.material = Some(Rc::clone(&self.material));
+        rec.material = Some(self.material.clone());
 
         true
     }
@@ -281,26 +374,25 @@ impl Camera {
         aperture: f32,
         focus_dist: f32,
     ) -> Camera {
-        let theta = degrees_to_radians(vfov);
+        let theta = vfov.to_radians();
         let h = (theta / 2.0).tan();
 
         let viewport_height = 2.0 * h;
         let viewport_width = aspect_ratio * viewport_height;
 
         let w = (lookfrom - lookat).unit();
-        let u = Vec3::cross(vup, w).unit();
-        let v = Vec3::cross(w, u);
+        let u = vup.cross(&w).unit();
+        let v = w.cross(&u);
 
         let origin = lookfrom;
         let horizontal = focus_dist * viewport_width * u;
         let vertical = focus_dist * viewport_height * v;
-        let lower_left_corner = origin - horizontal / 2.0 - vertical / 2.0 - focus_dist * w;
 
         Camera {
-            origin: origin,
+            origin: lookfrom,
             horizontal: horizontal,
             vertical: vertical,
-            lower_left_corner: lower_left_corner,
+            lower_left_corner: origin - horizontal / 2.0 - vertical / 2.0 - focus_dist * w,
             u: u,
             v: v,
             w: w,
@@ -382,10 +474,10 @@ impl Material for Metal {
         attenuation: &mut Color,
         scattered: &mut Ray,
     ) -> bool {
-        let reflected = Vec3::reflect(r_in.direction.unit(), rec.normal);
+        let reflected = r_in.direction.unit().reflect(&rec.normal);
         *scattered = Ray::new(rec.p, reflected + self.fuzz * random_in_unit_sphere());
         *attenuation = self.albedo;
-        Vec3::dot(scattered.direction, rec.normal) > 0.0
+        scattered.direction.dot(&rec.normal) > 0.0
     }
 }
 
@@ -407,7 +499,7 @@ impl Material for Dielectric {
         attenuation: &mut Color,
         scattered: &mut Ray,
     ) -> bool {
-        *attenuation = Color::new(1.0, 1.0, 1.0);
+        *attenuation = color(1.0, 1.0, 1.0);
         let refraction_ratio = if rec.front_face {
             1.0 / self.ir
         } else {
@@ -416,7 +508,7 @@ impl Material for Dielectric {
 
         let unit_direction = r_in.direction.unit();
 
-        let cos_theta = min(Vec3::dot(-unit_direction, rec.normal), 1.0);
+        let cos_theta = f32::min(-unit_direction.dot(&rec.normal), 1.0);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
         let cannot_refract = refraction_ratio * sin_theta > 1.0;
@@ -427,9 +519,9 @@ impl Material for Dielectric {
         let reflectance = r0 + (1.0 - r0) * (1.0 - cos_theta).powi(5);
 
         let direction = if cannot_refract || reflectance > random() {
-            Vec3::reflect(unit_direction, rec.normal)
+            unit_direction.reflect(&rec.normal)
         } else {
-            Vec3::refract(unit_direction, rec.normal, refraction_ratio)
+            unit_direction.refract(&rec.normal, refraction_ratio)
         };
 
         *scattered = Ray::new(rec.p, direction);
@@ -439,53 +531,53 @@ impl Material for Dielectric {
 }
 
 fn main() -> io::Result<()> {
-    let aspect_ratio = 3.0 / 2.0;
+    const ASPECT_RATIO: f32 = 3.0 / 2.0;
 
     // Image
-    let image_width: u32 = 1200;
-    let image_height: u32 = (image_width as f32 / aspect_ratio) as u32;
-    let samples_per_pixel = 500;
-    let max_depth = 50;
+    const IMAGE_WIDTH: u32 = 1200;
+    const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f32 / ASPECT_RATIO) as u32;
+    const SAMPLES_PER_PIXEL: i32 = 500;
+    const MAX_DEPTH: i32 = 50;
 
     let world = random_scene();
 
     // Camera
-    let lookfrom = Point3::new(13.0, 2.0, 3.0);
-    let lookat = Point3::new(0.0, 0.0, 1.0);
-    let vup = Vec3::new(0.0, 1.0, 0.0);
-    let dist_to_focus = 10.0;
-    let aperture = 0.1;
+    let lookfrom = point3(13.0, 2.0, 3.0);
+    let lookat = point3(0.0, 0.0, 1.0);
+    let vup = vec3(0.0, 1.0, 0.0);
+    const DIST_TO_FOCUS: f32 = 10.0;
+    const APERTURE: f32 = 0.1;
 
     let camera = Camera::new(
         lookfrom,
         lookat,
         vup,
         20.0,
-        aspect_ratio,
-        aperture,
-        dist_to_focus,
+        ASPECT_RATIO,
+        APERTURE,
+        DIST_TO_FOCUS,
     );
 
     println!("P3");
-    println!("{} {}", image_width, image_height);
+    println!("{} {}", IMAGE_WIDTH, IMAGE_HEIGHT);
     println!("255");
 
-    for j in (0..image_height).rev() {
+    for j in (0..IMAGE_HEIGHT).rev() {
         eprint!("\rScanlines remaining: {} ", j);
 
-        for i in 0..image_width {
-            let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+        for i in 0..IMAGE_WIDTH {
+            let mut pixel_color = color(0.0, 0.0, 0.0);
 
-            for _ in 0..samples_per_pixel {
-                let u = (i as f32 + random()) / ((image_width - 1) as f32);
-                let v = (j as f32 + random()) / ((image_height - 1) as f32);
+            for _ in 0..SAMPLES_PER_PIXEL {
+                let u = (i as f32 + random()) / ((IMAGE_WIDTH - 1) as f32);
+                let v = (j as f32 + random()) / ((IMAGE_HEIGHT - 1) as f32);
 
                 let r = camera.get_ray(u, v);
 
-                pixel_color += ray_color(r, &world, max_depth);
+                pixel_color += ray_color(r, &world, MAX_DEPTH);
             }
 
-            write_color(pixel_color, samples_per_pixel);
+            write_color(pixel_color, SAMPLES_PER_PIXEL);
         }
     }
 
@@ -497,19 +589,19 @@ fn main() -> io::Result<()> {
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
 
-    let ground_material = Rc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
+    let ground_material = Rc::new(Lambertian::new(color(0.5, 0.5, 0.5)));
     world.add(Box::new(Sphere::new(
-        Point3::new(0.0, -1000.0, 0.0),
+        point3(0.0, -1000.0, 0.0),
         1000.0,
         ground_material.clone(),
     )));
 
-    let shift = Point3::new(4.0, 0.2, 0.0);
+    let shift = point3(4.0, 0.2, 0.0);
 
     for a in -11..11 {
         for b in -11..11 {
             let choose_mat = random();
-            let center = Point3::new(a as f32 + 0.9 * random(), 0.2, b as f32 + 0.9 * random());
+            let center = point3(a as f32 + 0.9 * random(), 0.2, b as f32 + 0.9 * random());
 
             if (center - shift).length() > 0.9 {
                 if choose_mat < 0.8 {
@@ -534,21 +626,21 @@ fn random_scene() -> HittableList {
 
     let material1 = Rc::new(Dielectric::new(1.5));
     world.add(Box::new(Sphere::new(
-        Point3::new(0.0, 1.0, 0.0),
+        point3(0.0, 1.0, 0.0),
         1.0,
         material1.clone(),
     )));
 
-    let material2 = Rc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
+    let material2 = Rc::new(Lambertian::new(color(0.4, 0.2, 0.1)));
     world.add(Box::new(Sphere::new(
-        Point3::new(-4.0, 1.0, 0.0),
+        point3(-4.0, 1.0, 0.0),
         1.0,
         material2.clone(),
     )));
 
-    let material3 = Rc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
+    let material3 = Rc::new(Metal::new(color(0.7, 0.6, 0.5), 0.0));
     world.add(Box::new(Sphere::new(
-        Point3::new(4.0, 1.0, 0.0),
+        point3(4.0, 1.0, 0.0),
         1.0,
         material3.clone(),
     )));
@@ -559,7 +651,7 @@ fn random_scene() -> HittableList {
 fn ray_color(r: Ray, world: &dyn Hittable, depth: i32) -> Color {
     // If we've exceeded the ray bounce limit, no more light is gathered.
     if depth <= 0 {
-        return Color::new(0.0, 0.0, 0.0);
+        return color(0.0, 0.0, 0.0);
     }
 
     let mut rec = HitRecord::default();
@@ -575,16 +667,16 @@ fn ray_color(r: Ray, world: &dyn Hittable, depth: i32) -> Color {
         {
             return attenuation * ray_color(scattered, world, depth - 1);
         }
-        return Color::new(0.0, 0.0, 0.0);
+        return color(0.0, 0.0, 0.0);
     }
 
     let unit_direction = r.direction.unit();
     let t = 0.5 * (unit_direction.y + 1.0);
 
-    (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
+    (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0)
 }
 
-fn write_color(pixel_color: Color, samples_per_pixel: u32) {
+fn write_color(pixel_color: Color, samples_per_pixel: i32) {
     let r = pixel_color.x;
     let g = pixel_color.y;
     let b = pixel_color.z;
@@ -598,31 +690,20 @@ fn write_color(pixel_color: Color, samples_per_pixel: u32) {
 
     // Scale the 0..1 into 0..255
     // TODO: This is not a perfect scaling
-    let ir = (256.0 * clamp(rs, 0.0, 0.999)) as u32;
-    let ig = (256.0 * clamp(gs, 0.0, 0.999)) as u32;
-    let ib = (256.0 * clamp(bs, 0.0, 0.999)) as u32;
+    let ir = (256.0 * f32::clamp(rs, 0.0, 0.999)) as u32;
+    let ig = (256.0 * f32::clamp(gs, 0.0, 0.999)) as u32;
+    let ib = (256.0 * f32::clamp(bs, 0.0, 0.999)) as u32;
 
     println!("{} {} {}", ir, ig, ib);
 }
 
 fn random() -> f32 {
-    let mut rng = rand::thread_rng();
-    rng.gen::<f32>()
+    rand::random::<f32>()
 }
 
 fn random_range(min: f32, max: f32) -> f32 {
     let mut rng = rand::thread_rng();
     rng.gen_range(min..max)
-}
-
-fn clamp(x: f32, min: f32, max: f32) -> f32 {
-    if x < min {
-        return min;
-    }
-    if x > max {
-        return max;
-    }
-    x
 }
 
 fn random_in_unit_sphere() -> Vec3 {
@@ -642,28 +723,16 @@ fn random_unit_vector() -> Vec3 {
 fn random_in_hemisphere(normal: Vec3) -> Vec3 {
     let in_unit_sphere = random_in_unit_sphere();
 
-    if Vec3::dot(in_unit_sphere, normal) > 0.0 {
+    if in_unit_sphere.dot(&normal) > 0.0 {
         in_unit_sphere
     } else {
         -in_unit_sphere
     }
 }
 
-fn min(a: f32, b: f32) -> f32 {
-    if a <= b {
-        a
-    } else {
-        b
-    }
-}
-
-fn degrees_to_radians(degrees: f32) -> f32 {
-    degrees * PI / 180.0
-}
-
 fn random_unit_in_disk() -> Vec3 {
     loop {
-        let p = Vec3::new(random_range(-1.0, 1.0), random_range(-1.0, 1.0), 0.0);
+        let p = vec3(random_range(-1.0, 1.0), random_range(-1.0, 1.0), 0.0);
         if p.length_squared() >= 1.0 {
             continue;
         }
