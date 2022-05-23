@@ -233,36 +233,13 @@ impl Ray {
 struct HitRecord {
     p: Point3,
     normal: Vec3,
-    material: Option<Rc<dyn Material>>,
+    material: Rc<dyn Material>,
     t: f32,
     front_face: bool,
 }
 
-impl Default for HitRecord {
-    fn default() -> Self {
-        HitRecord {
-            p: Point3::default(),
-            normal: Vec3::default(),
-            material: None,
-            t: 0.0,
-            front_face: false,
-        }
-    }
-}
-
-impl HitRecord {
-    fn set_face_normal(&mut self, r: &Ray, outward_normal: Vec3) {
-        self.front_face = r.direction.dot(&outward_normal) < 0.0;
-        self.normal = if self.front_face {
-            outward_normal
-        } else {
-            -outward_normal
-        };
-    }
-}
-
 trait Hittable {
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool;
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
 }
 
 struct Sphere {
@@ -282,7 +259,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool {
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let oc = r.origin - self.center;
         let a = r.direction.length_squared();
         let half_b = oc.dot(&r.direction);
@@ -290,7 +267,7 @@ impl Hittable for Sphere {
 
         let discriminant = half_b * half_b - a * c;
         if discriminant < 0.0 {
-            return false;
+            return None;
         }
 
         let sqrtd = discriminant.sqrt();
@@ -300,17 +277,28 @@ impl Hittable for Sphere {
         if root < t_min || t_max < root {
             root = (-half_b + sqrtd) / a;
             if root < t_min || t_max < root {
-                return false;
+                return None;
             }
         }
 
-        rec.t = root;
-        rec.p = r.at(rec.t);
-        let outward_normal = (rec.p - self.center) / self.radius;
-        rec.set_face_normal(r, outward_normal);
-        rec.material = Some(self.material.clone());
+        let p = r.at(root);
+        let outward_normal = (p - self.center) / self.radius;
+        let front_face = r.direction.dot(&outward_normal) < 0.0;
+        let normal = if front_face {
+            outward_normal
+        } else {
+            -outward_normal
+        };
 
-        true
+        let rec = HitRecord {
+            p,
+            normal,
+            material: self.material.clone(),
+            t: root,
+            front_face,
+        };
+
+        Some(rec)
     }
 }
 
@@ -335,16 +323,14 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool {
-        let mut hit_anything = false;
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        let mut hit_anything: Option<HitRecord> = None;
         let mut closest_so_far = t_max;
 
         for object in self.objects.iter() {
-            let mut temp_rec = HitRecord::default();
-            if object.hit(r, t_min, closest_so_far, &mut temp_rec) {
-                hit_anything = true;
-                closest_so_far = temp_rec.t;
-                *rec = temp_rec;
+            if let Some(rec) = object.hit(r, t_min, closest_so_far) {
+                closest_so_far = rec.t;
+                hit_anything = Some(rec);
             }
         }
 
@@ -625,9 +611,8 @@ fn ray_color(r: Ray, world: &dyn Hittable, depth: i32) -> Color {
         return color(0.0, 0.0, 0.0);
     }
 
-    let mut rec = HitRecord::default();
-    if world.hit(&r, 0.001, f32::INFINITY, &mut rec) {
-        if let Some((attenuation, scattered)) = rec.material.as_ref().unwrap().scatter(&r, &rec) {
+    if let Some(rec) = world.hit(&r, 0.001, f32::INFINITY) {
+        if let Some((attenuation, scattered)) = rec.material.as_ref().scatter(&r, &rec) {
             return attenuation * ray_color(scattered, world, depth - 1);
         }
         return color(0.0, 0.0, 0.0);
