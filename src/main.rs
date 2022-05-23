@@ -612,12 +612,13 @@ fn ray_color(r: Ray, world: &dyn Hittable, depth: i32) -> Color {
     }
 
     if let Some(rec) = world.hit(&r, 0.001, f32::INFINITY) {
-        if let Some((attenuation, scattered)) = rec.material.as_ref().scatter(&r, &rec) {
+        if let Some((attenuation, scattered)) = rec.material.scatter(&r, &rec) {
             return attenuation * ray_color(scattered, world, depth - 1);
         }
         return color(0.0, 0.0, 0.0);
     }
 
+    // If the ray didn't hit anything in the world, return the sky.
     let unit_direction = r.direction.unit();
     let t = 0.5 * (unit_direction.y + 1.0);
 
