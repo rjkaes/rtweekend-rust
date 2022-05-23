@@ -606,16 +606,18 @@ fn random_scene() -> HittableList {
 }
 
 fn ray_color(r: Ray, world: &dyn Hittable, depth: i32) -> Color {
+    const BLACK: Color = color(0.0, 0.0, 0.0);
+
     // If we've exceeded the ray bounce limit, no more light is gathered.
     if depth <= 0 {
-        return color(0.0, 0.0, 0.0);
+        return BLACK;
     }
 
     if let Some(rec) = world.hit(&r, 0.001, f32::INFINITY) {
         if let Some((attenuation, scattered)) = rec.material.scatter(&r, &rec) {
             return attenuation * ray_color(scattered, world, depth - 1);
         }
-        return color(0.0, 0.0, 0.0);
+        return BLACK;
     }
 
     // If the ray didn't hit anything in the world, return the sky.
