@@ -573,17 +573,17 @@ fn random_scene() -> HittableList {
                     // diffuse
                     let albedo = Color::random() * Color::random();
                     let material = Rc::new(Lambertian::new(albedo));
-                    world.add(Box::new(Sphere::new(center, 0.2, material.clone())));
+                    world.add(Box::new(Sphere::new(center, 0.2, material)));
                 } else if choose_mat < 0.95 {
                     // metal
                     let albedo = Color::random_range(0.5, 1.0);
                     let fuzz = random_range(0.0, 0.5);
                     let material = Rc::new(Metal::new(albedo, fuzz));
-                    world.add(Box::new(Sphere::new(center, 0.2, material.clone())));
+                    world.add(Box::new(Sphere::new(center, 0.2, material)));
                 } else {
                     // glass
                     let material = Rc::new(Dielectric::new(1.5));
-                    world.add(Box::new(Sphere::new(center, 0.2, material.clone())));
+                    world.add(Box::new(Sphere::new(center, 0.2, material)));
                 }
             }
         }
