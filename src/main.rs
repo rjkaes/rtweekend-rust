@@ -227,11 +227,16 @@ impl std::ops::Sub<Vec3> for &Vec3 {
 struct Ray {
     origin: Point3,
     direction: Vec3,
+    time: f32,
 }
 
 impl Ray {
-    fn new(origin: Vec3, direction: Vec3) -> Ray {
-        Ray { origin, direction }
+    fn new(origin: Vec3, direction: Vec3, time: f32) -> Ray {
+        Ray {
+            origin,
+            direction,
+            time,
+        }
     }
 
     fn at(&self, t: f32) -> Vec3 {
@@ -258,8 +263,8 @@ struct Sphere {
 }
 
 impl Sphere {
-    fn new(center: Point3, radius: f32, material: Rc<dyn Material>) -> Sphere {
-        Sphere {
+    fn new(center: Point3, radius: f32, material: Rc<dyn Material>) -> Self {
+        Self {
             center,
             radius,
             material,
@@ -292,6 +297,84 @@ impl Hittable for Sphere {
 
         let p = r.at(root);
         let outward_normal = (p - self.center) / self.radius;
+        let front_face = r.direction.dot(&outward_normal) < 0.0;
+        let normal = if front_face {
+            outward_normal
+        } else {
+            -outward_normal
+        };
+
+        let rec = HitRecord {
+            p,
+            normal,
+            material: self.material.clone(),
+            t: root,
+            front_face,
+        };
+
+        Some(rec)
+    }
+}
+
+struct MovingSphere {
+    center0: Point3,
+    center1: Point3,
+    time0: f32,
+    time1: f32,
+    radius: f32,
+    material: Rc<dyn Material>,
+}
+
+impl MovingSphere {
+    fn new(
+        center0: Point3,
+        center1: Point3,
+        time0: f32,
+        time1: f32,
+        radius: f32,
+        material: Rc<dyn Material>,
+    ) -> Self {
+        Self {
+            center0,
+            center1,
+            time0,
+            time1,
+            radius,
+            material,
+        }
+    }
+
+    fn center(&self, time: f32) -> Point3 {
+        self.center0
+            + ((time - self.time0) / (self.time1 - self.time0)) * (self.center1 - self.center0)
+    }
+}
+
+impl Hittable for MovingSphere {
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        let oc = r.origin - self.center(r.time);
+        let a = r.direction.length_squared();
+        let half_b = oc.dot(&r.direction);
+        let c = oc.length_squared() - self.radius * self.radius;
+
+        let discriminant = half_b * half_b - a * c;
+        if discriminant < 0.0 {
+            return None;
+        }
+
+        let sqrtd = discriminant.sqrt();
+
+        // Find the nearest root that lies in the acceptable range.
+        let mut root = (-half_b - sqrtd) / a;
+        if root < t_min || t_max < root {
+            root = (-half_b + sqrtd) / a;
+            if root < t_min || t_max < root {
+                return None;
+            }
+        }
+
+        let p = r.at(root);
+        let outward_normal = (p - self.center(r.time)) / self.radius;
         let front_face = r.direction.dot(&outward_normal) < 0.0;
         let normal = if front_face {
             outward_normal
@@ -356,6 +439,10 @@ struct Camera {
     v: Vec3,
     w: Vec3,
     lens_radius: f32,
+
+    // shutter open/close times
+    time0: f32,
+    time1: f32,
 }
 
 impl Camera {
@@ -367,6 +454,8 @@ impl Camera {
         aspect_ratio: f32,
         aperture: f32,
         focus_dist: f32,
+        time0: f32,
+        time1: f32,
     ) -> Camera {
         let theta = vfov.to_radians();
         let h = (theta / 2.0).tan();
@@ -391,6 +480,8 @@ impl Camera {
             v,
             w,
             lens_radius: aperture / 2.0,
+            time0,
+            time1,
         }
     }
 
@@ -401,6 +492,7 @@ impl Camera {
         Ray::new(
             self.origin + offset,
             self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset,
+            random_range(self.time0, self.time1),
         )
     }
 }
@@ -421,7 +513,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _: &Ray, rec: &HitRecord) -> Option<Scattered> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scattered> {
         let scattered_direction = rec.normal + random_unit_vector();
 
         // Catch degnerate scatter direction
@@ -431,7 +523,10 @@ impl Material for Lambertian {
             scattered_direction
         };
 
-        Some((self.albedo, Ray::new(rec.p, choosen_scattered_direction)))
+        Some((
+            self.albedo,
+            Ray::new(rec.p, choosen_scattered_direction, r_in.time),
+        ))
     }
 }
 
@@ -453,7 +548,11 @@ impl Material for Metal {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scattered> {
         let reflected = r_in.direction.unit().reflect(&rec.normal);
 
-        let scattered = Ray::new(rec.p, reflected + self.fuzz * random_in_unit_sphere());
+        let scattered = Ray::new(
+            rec.p,
+            reflected + self.fuzz * random_in_unit_sphere(),
+            r_in.time,
+        );
         let attenuation = self.albedo;
 
         if scattered.direction.dot(&rec.normal) > 0.0 {
@@ -500,17 +599,17 @@ impl Material for Dielectric {
             unit_direction.refract(&rec.normal, refraction_ratio)
         };
 
-        Some((color(1.0, 1.0, 1.0), Ray::new(rec.p, direction)))
+        Some((color(1.0, 1.0, 1.0), Ray::new(rec.p, direction, r_in.time)))
     }
 }
 
 fn main() -> io::Result<()> {
-    const ASPECT_RATIO: f32 = 3.0 / 2.0;
+    const ASPECT_RATIO: f32 = 16.0 / 9.0;
 
     // Image
-    const IMAGE_WIDTH: u32 = 1200;
+    const IMAGE_WIDTH: u32 = 400;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f32 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: i32 = 500;
+    const SAMPLES_PER_PIXEL: i32 = 100;
     const MAX_DEPTH: i32 = 50;
 
     let world = random_scene();
@@ -530,6 +629,8 @@ fn main() -> io::Result<()> {
         ASPECT_RATIO,
         APERTURE,
         DIST_TO_FOCUS,
+        0.0,
+        1.0,
     );
 
     println!("P3");
@@ -608,7 +709,10 @@ fn random_scene() -> HittableList {
                     // diffuse
                     let albedo = Color::random() * Color::random();
                     let material = Rc::new(Lambertian::new(albedo));
-                    world.add(Box::new(Sphere::new(center, 0.2, material)));
+                    let center2 = center + vec3(0.0, random_range(0.0, 0.5), 0.0);
+                    world.add(Box::new(MovingSphere::new(
+                        center, center2, 0.0, 1.0, 0.2, material,
+                    )));
                 } else if choose_mat < 0.95 {
                     // metal
                     let albedo = Color::random_range(0.5, 1.0);
