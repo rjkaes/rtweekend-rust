@@ -551,6 +551,32 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
+// Static test scene used for profiling.
+fn test_scene() -> HittableList {
+    let mut world = HittableList::new();
+
+    let ground = Rc::new(Lambertian::new(color(0.8, 0.8, 0.0)));
+    let center = Rc::new(Lambertian::new(color(0.1, 0.2, 0.5)));
+    let left = Rc::new(Dielectric::new(1.5));
+    let right = Rc::new(Metal::new(color(0.8, 0.6, 0.2), 0.0));
+
+    world.add(Box::new(Sphere::new(
+        point3(0.0, -100.5, -1.0),
+        100.0,
+        ground,
+    )));
+    world.add(Box::new(Sphere::new(point3(0.0, 0.0, -1.0), 0.5, center)));
+    world.add(Box::new(Sphere::new(
+        point3(-1.0, 0.0, -1.0),
+        0.5,
+        left.clone(),
+    )));
+    world.add(Box::new(Sphere::new(point3(-1.0, 0.0, -1.0), -0.45, left)));
+    world.add(Box::new(Sphere::new(point3(1.0, 0.0, -1.0), 0.5, right)));
+
+    world
+}
+
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
 
