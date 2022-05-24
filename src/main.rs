@@ -179,6 +179,15 @@ impl std::ops::Mul<&Vec3> for f32 {
     }
 }
 
+impl std::ops::MulAssign for Vec3 {
+    #[inline]
+    fn mul_assign(&mut self, rhs: Vec3) {
+        self.x *= rhs.x;
+        self.y *= rhs.y;
+        self.z *= rhs.z;
+    }
+}
+
 impl std::ops::MulAssign<f32> for Vec3 {
     #[inline]
     fn mul_assign(&mut self, rhs: f32) {
@@ -631,26 +640,32 @@ fn random_scene() -> HittableList {
     world
 }
 
-fn ray_color(r: Ray, world: &dyn Hittable, depth: i32) -> Color {
+fn ray_color(initial: Ray, world: &dyn Hittable, depth: i32) -> Color {
     const BLACK: Color = color(0.0, 0.0, 0.0);
 
-    // If we've exceeded the ray bounce limit, no more light is gathered.
-    if depth <= 0 {
-        return BLACK;
-    }
+    let mut r = initial;
+    let mut c = color(1.0, 1.0, 1.0);
 
-    if let Some(rec) = world.hit(&r, 0.001, f32::INFINITY) {
-        if let Some((attenuation, scattered)) = rec.material.scatter(&r, &rec) {
-            return attenuation * ray_color(scattered, world, depth - 1);
+    for _ in 0..depth {
+        if let Some(rec) = world.hit(&r, 0.001, f32::INFINITY) {
+            if let Some((attenuation, scattered)) = rec.material.scatter(&r, &rec) {
+                c *= attenuation;
+                r = scattered;
+            } else {
+                return BLACK;
+            }
+        } else {
+            // If the ray didn't hit anything in the world, return the sky.
+            let unit_direction = r.direction.unit();
+            let t = 0.5 * (unit_direction.y + 1.0);
+            let sky = (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+
+            return c * sky;
         }
-        return BLACK;
     }
 
-    // If the ray didn't hit anything in the world, return the sky.
-    let unit_direction = r.direction.unit();
-    let t = 0.5 * (unit_direction.y + 1.0);
-
-    (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0)
+    // If we exited the loop, that means we hit nothing, so return black.
+    BLACK
 }
 
 fn write_color(pixel_color: Color, samples_per_pixel: i32) {
