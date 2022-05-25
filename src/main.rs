@@ -11,22 +11,40 @@ fn main() -> io::Result<()> {
     const SAMPLES_PER_PIXEL: i32 = 100;
     const MAX_DEPTH: i32 = 50;
 
-    let world = random_scene();
+    let mut world;
+    let mut lookfrom;
+    let mut lookat;
+    let mut vfov = 40.0;
+    let mut aperture = 0.0;
+
+    // // Random Scene
+    // {
+    //     world = random_scene();
+    //     lookfrom = point3(13.0, 2.0, 3.0);
+    //     lookat = point3(0.0, 0.0, 0.0);
+    //     vfov = 20.0;
+    //     aperture = 0.1;
+    // }
+
+    // Two Spheres
+    {
+        world = two_spheres();
+        lookfrom = point3(13.0, 2.0, 3.0);
+        lookat = point3(0.0, 0.0, 0.0);
+        vfov = 20.0;
+    }
 
     // Camera
-    let lookfrom = point3(13.0, 2.0, 3.0);
-    let lookat = point3(0.0, 0.0, 1.0);
     let vup = vec3(0.0, 1.0, 0.0);
     const DIST_TO_FOCUS: f32 = 10.0;
-    const APERTURE: f32 = 0.1;
 
     let camera = Camera::new(
         lookfrom,
         lookat,
         vup,
-        20.0,
+        vfov,
         ASPECT_RATIO,
-        APERTURE,
+        aperture,
         DIST_TO_FOCUS,
         0.0,
         1.0,
@@ -82,6 +100,29 @@ fn test_scene() -> HittableList {
     )));
     world.add(Box::new(Sphere::new(point3(-1.0, 0.0, -1.0), -0.45, left)));
     world.add(Box::new(Sphere::new(point3(1.0, 0.0, -1.0), 0.5, right)));
+
+    world
+}
+
+fn two_spheres() -> HittableList {
+    let mut world = HittableList::new();
+
+    let checker = Rc::new(CheckerTexture::from_color(
+        color(0.2, 0.3, 0.1),
+        color(0.9, 0.9, 0.9),
+    ));
+    let lambertian = Rc::new(Lambertian::new_from_texture(checker));
+
+    world.add(Box::new(Sphere::new(
+        point3(0.0, -10.0, 0.0),
+        10.0,
+        lambertian.clone(),
+    )));
+    world.add(Box::new(Sphere::new(
+        point3(0.0, 10.0, 0.0),
+        10.0,
+        lambertian,
+    )));
 
     world
 }
