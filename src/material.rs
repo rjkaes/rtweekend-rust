@@ -1,6 +1,8 @@
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
+use crate::texture::*;
 use crate::vec3::*;
+use std::rc::Rc;
 
 pub type Scattered = (Color, Ray);
 pub trait Material {
@@ -8,11 +10,17 @@ pub trait Material {
 }
 
 pub struct Lambertian {
-    pub albedo: Color,
+    pub albedo: Rc<dyn Texture>,
 }
 
 impl Lambertian {
-    pub fn new(albedo: Color) -> Lambertian {
+    pub fn new(albedo: Color) -> Self {
+        Lambertian {
+            albedo: Rc::new(SolidColor::new(albedo)),
+        }
+    }
+
+    pub fn new_from_texture(albedo: Rc<dyn Texture>) -> Self {
         Lambertian { albedo }
     }
 }
@@ -29,7 +37,7 @@ impl Material for Lambertian {
         };
 
         Some((
-            self.albedo,
+            self.albedo.value(rec.u, rec.v, &rec.p),
             Ray::new(rec.p, choosen_scattered_direction, r_in.time),
         ))
     }

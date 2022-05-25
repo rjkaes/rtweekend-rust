@@ -89,7 +89,12 @@ fn test_scene() -> HittableList {
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
 
-    let ground_material = Rc::new(Lambertian::new(color(0.5, 0.5, 0.5)));
+    let checker = Rc::new(CheckerTexture::from_color(
+        color(0.2, 0.3, 0.1),
+        color(0.9, 0.9, 0.9),
+    ));
+
+    let ground_material = Rc::new(Lambertian::new_from_texture(checker));
     world.add(Box::new(Sphere::new(
         point3(0.0, -1000.0, 0.0),
         1000.0,

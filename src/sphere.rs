@@ -2,6 +2,8 @@ use crate::hittable::*;
 use crate::material::*;
 use crate::ray::*;
 use crate::vec3::*;
+
+use std::f32::consts::PI;
 use std::rc::Rc;
 
 pub struct Sphere {
@@ -17,6 +19,22 @@ impl Sphere {
             radius,
             material,
         }
+    }
+
+    fn get_uv(p: &Point3) -> (f32, f32) {
+        // p: a given point on the sphere of radius one, centered at the origin.
+        // u: returned value [0,1] of angle around the Y axis from X=-1.
+        // v: returned value [0,1] of angle from Y=-1 to Y=+1.
+        //     <1 0 0> yields <0.50 0.50>       <-1  0  0> yields <0.00 0.50>
+        //     <0 1 0> yields <0.50 1.00>       < 0 -1  0> yields <0.50 0.00>
+        //     <0 0 1> yields <0.25 0.50>       < 0  0 -1> yields <0.75 0.50>
+        let theta = -p.y.acos();
+        let phi = (-p.z).atan2(p.x) + PI;
+
+        let u = phi / (2.0 * PI);
+        let v = theta / PI;
+
+        (u, v)
     }
 }
 
@@ -52,11 +70,15 @@ impl Hittable for Sphere {
             -outward_normal
         };
 
+        let (u, v) = Sphere::get_uv(&outward_normal);
+
         let rec = HitRecord {
             p,
             normal,
             material: self.material.clone(),
             t: root,
+            u,
+            v,
             front_face,
         };
 
@@ -130,11 +152,15 @@ impl Hittable for MovingSphere {
             -outward_normal
         };
 
+        let (u, v) = Sphere::get_uv(&outward_normal);
+
         let rec = HitRecord {
             p,
             normal,
             material: self.material.clone(),
             t: root,
+            u,
+            v,
             front_face,
         };
 
