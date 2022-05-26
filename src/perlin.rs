@@ -8,7 +8,7 @@ const POINT_COUNT: i32 = 256;
 // multiply correctly.
 #[derive(Default)]
 pub struct Perlin {
-    ranfloat: Vec<f32>,
+    ranvec: Vec<Vec3>,
     perm_x: Vec<i32>,
     perm_y: Vec<i32>,
     perm_z: Vec<i32>,
@@ -19,7 +19,9 @@ impl Perlin {
         let mut rng = SmallRng::from_entropy();
 
         Self {
-            ranfloat: (0..POINT_COUNT).map(|_| rng.gen::<f32>()).collect(),
+            ranvec: (0..POINT_COUNT)
+                .map(|_| Vec3::random_range(-1.0, 1.0).unit())
+                .collect(),
             perm_x: Self::generate_perm(&mut rng),
             perm_y: Self::generate_perm(&mut rng),
             perm_z: Self::generate_perm(&mut rng),
@@ -27,36 +29,38 @@ impl Perlin {
     }
 
     pub fn noise(&self, p: &Point3) -> f32 {
-        let mut u = p.x - p.x.floor();
-        let mut v = p.y - p.y.floor();
-        let mut w = p.z - p.z.floor();
+        let u = p.x - p.x.floor();
+        let v = p.y - p.y.floor();
+        let w = p.z - p.z.floor();
+
+        let xint = p.x.floor() as i32;
+        let yint = p.y.floor() as i32;
+        let zint = p.z.floor() as i32;
 
         // Hermitian Smoothing
-        u = u * u * (3.0 - 2.0 * u);
-        v = v * v * (3.0 - 2.0 * v);
-        w = w * w * (3.0 - 2.0 * w);
+        let uu = u * u * (3.0 - 2.0 * u);
+        let vv = v * v * (3.0 - 2.0 * v);
+        let ww = w * w * (3.0 - 2.0 * w);
 
-        let i = p.x.floor() as i32;
-        let j = p.y.floor() as i32;
-        let k = p.z.floor() as i32;
-
-        // trilinear_interp
+        // Perlin interpolation
         let mut accum: f32 = 0.0;
 
-        for di in 0..2 {
-            for dj in 0..2 {
-                for dk in 0..2 {
-                    let x_idx = ((i + di) & 255) as usize;
-                    let y_idx = ((j + dj) & 255) as usize;
-                    let z_idx = ((k + dk) & 255) as usize;
+        for i in 0..2 {
+            for j in 0..2 {
+                for k in 0..2 {
+                    let x_idx = ((xint + i) & 255) as usize;
+                    let y_idx = ((yint + j) & 255) as usize;
+                    let z_idx = ((zint + k) & 255) as usize;
 
-                    let rf = self.ranfloat
+                    let rv = self.ranvec
                         [(self.perm_x[x_idx] ^ self.perm_y[y_idx] ^ self.perm_z[z_idx]) as usize];
 
-                    accum += (di as f32 * u + (1.0 - di as f32) * (1.0 - u))
-                        * (dj as f32 * v + (1.0 - dj as f32) * (1.0 - v))
-                        * (dk as f32 * w + (1.0 - dk as f32) * (1.0 - w))
-                        * rf;
+                    let weight_v = vec3(u - i as f32, v - j as f32, w - k as f32);
+
+                    accum += (i as f32 * uu + (1.0 - i as f32) * (1.0 - uu))
+                        * (j as f32 * vv + (1.0 - j as f32) * (1.0 - vv))
+                        * (k as f32 * ww + (1.0 - k as f32) * (1.0 - ww))
+                        * weight_v.dot(&rv);
                 }
             }
         }
