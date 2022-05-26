@@ -7,6 +7,10 @@ use std::rc::Rc;
 pub type Scattered = (Color, Ray);
 pub trait Material {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scattered>;
+
+    fn emitted(&self, _u: f32, _v: f32, _p: &Point3) -> Color {
+        color(0.0, 0.0, 0.0)
+    }
 }
 
 pub struct Lambertian {
@@ -113,6 +117,32 @@ impl Material for Dielectric {
         };
 
         Some((color(1.0, 1.0, 1.0), Ray::new(rec.p, direction, r_in.time)))
+    }
+}
+
+pub struct DiffuseLight {
+    emit: Rc<dyn Texture>,
+}
+
+impl DiffuseLight {
+    pub fn new(emit: Color) -> Self {
+        Self {
+            emit: Rc::new(SolidColor::new(emit)),
+        }
+    }
+
+    pub fn new_from_texture(emit: Rc<dyn Texture>) -> Self {
+        Self { emit }
+    }
+}
+
+impl Material for DiffuseLight {
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<Scattered> {
+        None
+    }
+
+    fn emitted(&self, u: f32, v: f32, p: &Point3) -> Color {
+        self.emit.value(u, v, p)
     }
 }
 

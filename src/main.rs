@@ -11,15 +11,17 @@ fn main() -> io::Result<()> {
     const SAMPLES_PER_PIXEL: i32 = 100;
     const MAX_DEPTH: i32 = 50;
 
-    let mut world;
-    let mut lookfrom;
-    let mut lookat;
-    let mut vfov = 40.0;
+    let world;
+    let lookfrom;
+    let lookat;
+    let vfov;
     let mut aperture = 0.0;
+    let background;
 
     // // Random Scene
     // {
     //     world = random_scene();
+    //     background = color(0.7, 0.8, 1.0);
     //     lookfrom = point3(13.0, 2.0, 3.0);
     //     lookat = point3(0.0, 0.0, 0.0);
     //     vfov = 20.0;
@@ -29,6 +31,7 @@ fn main() -> io::Result<()> {
     // // Two Spheres
     // {
     //     world = two_spheres();
+    //     background = color(0.7, 0.8, 1.0);
     //     lookfrom = point3(13.0, 2.0, 3.0);
     //     lookat = point3(0.0, 0.0, 0.0);
     //     vfov = 20.0;
@@ -37,6 +40,7 @@ fn main() -> io::Result<()> {
     // // Two Perlin Spheres
     // {
     //     world = two_perlin_spheres();
+    //     background = color(0.7, 0.8, 1.0);
     //     lookfrom = point3(13.0, 2.0, 3.0);
     //     lookat = point3(0.0, 0.0, 0.0);
     //     vfov = 20.0;
@@ -45,6 +49,7 @@ fn main() -> io::Result<()> {
     // Earth!
     {
         world = earth();
+        background = color(0.7, 0.8, 1.0);
         lookfrom = point3(13.0, 2.0, 3.0);
         lookat = point3(0.0, 0.0, 0.0);
         vfov = 20.0;
@@ -82,7 +87,7 @@ fn main() -> io::Result<()> {
 
                 let r = camera.get_ray(u, v);
 
-                pixel_color += ray_color(r, &world, MAX_DEPTH);
+                pixel_color += ray_color(r, background, &world, MAX_DEPTH);
             }
 
             write_color(pixel_color, SAMPLES_PER_PIXEL);
@@ -235,32 +240,27 @@ fn earth() -> HittableList {
     world
 }
 
-fn ray_color(initial: Ray, world: &dyn Hittable, depth: i32) -> Color {
-    const BLACK: Color = color(0.0, 0.0, 0.0);
-
+fn ray_color(initial: Ray, background: Color, world: &dyn Hittable, depth: i32) -> Color {
     let mut r = initial;
     let mut c = color(1.0, 1.0, 1.0);
 
     for _ in 0..depth {
         if let Some(rec) = world.hit(&r, 0.001, f32::INFINITY) {
+            let emitted = rec.material.emitted(rec.u, rec.v, &rec.p);
+
             if let Some((attenuation, scattered)) = rec.material.scatter(&r, &rec) {
-                c *= attenuation;
+                c = emitted + attenuation * c;
                 r = scattered;
             } else {
-                return BLACK;
+                return emitted;
             }
         } else {
-            // If the ray didn't hit anything in the world, return the sky.
-            let unit_direction = r.direction.unit();
-            let t = 0.5 * (unit_direction.y + 1.0);
-            let sky = (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
-
-            return c * sky;
+            return c * background;
         }
     }
 
     // If we exited the loop, that means we hit nothing, so return black.
-    BLACK
+    color(0.0, 0.0, 0.0)
 }
 
 fn write_color(pixel_color: Color, samples_per_pixel: i32) {
