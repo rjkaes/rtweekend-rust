@@ -138,7 +138,7 @@ fn two_spheres() -> HittableList {
 fn two_perlin_spheres() -> HittableList {
     let mut world = HittableList::new();
 
-    let pertext = Rc::new(NoiseTexture::new());
+    let pertext = Rc::new(NoiseTexture::new(4.0));
     let lambertian = Rc::new(Lambertian::new_from_texture(pertext));
 
     world.add(Box::new(Sphere::new(

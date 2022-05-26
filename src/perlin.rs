@@ -27,13 +27,41 @@ impl Perlin {
     }
 
     pub fn noise(&self, p: &Point3) -> f32 {
-        let i = ((4.0 * p.x) as i32) & 255;
-        let j = ((4.0 * p.y) as i32) & 255;
-        let k = ((4.0 * p.z) as i32) & 255;
+        let mut u = p.x - p.x.floor();
+        let mut v = p.y - p.y.floor();
+        let mut w = p.z - p.z.floor();
 
-        let idx = self.perm_x[i as usize] ^ self.perm_y[j as usize] ^ self.perm_z[k as usize];
+        // Hermitian Smoothing
+        u = u * u * (3.0 - 2.0 * u);
+        v = v * v * (3.0 - 2.0 * v);
+        w = w * w * (3.0 - 2.0 * w);
 
-        self.ranfloat[idx as usize]
+        let i = p.x.floor() as i32;
+        let j = p.y.floor() as i32;
+        let k = p.z.floor() as i32;
+
+        // trilinear_interp
+        let mut accum: f32 = 0.0;
+
+        for di in 0..2 {
+            for dj in 0..2 {
+                for dk in 0..2 {
+                    let x_idx = ((i + di) & 255) as usize;
+                    let y_idx = ((j + dj) & 255) as usize;
+                    let z_idx = ((k + dk) & 255) as usize;
+
+                    let rf = self.ranfloat
+                        [(self.perm_x[x_idx] ^ self.perm_y[y_idx] ^ self.perm_z[z_idx]) as usize];
+
+                    accum += (di as f32 * u + (1.0 - di as f32) * (1.0 - u))
+                        * (dj as f32 * v + (1.0 - dj as f32) * (1.0 - v))
+                        * (dk as f32 * w + (1.0 - dk as f32) * (1.0 - w))
+                        * rf;
+                }
+            }
+        }
+
+        accum
     }
 
     fn generate_perm(rng: &mut rand::rngs::SmallRng) -> Vec<i32> {
