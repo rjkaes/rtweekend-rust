@@ -34,9 +34,17 @@ fn main() -> io::Result<()> {
     //     vfov = 20.0;
     // }
 
-    // Two Perlin Spheres
+    // // Two Perlin Spheres
+    // {
+    //     world = two_perlin_spheres();
+    //     lookfrom = point3(13.0, 2.0, 3.0);
+    //     lookat = point3(0.0, 0.0, 0.0);
+    //     vfov = 20.0;
+    // }
+
+    // Earth!
     {
-        world = two_perlin_spheres();
+        world = earth();
         lookfrom = point3(13.0, 2.0, 3.0);
         lookat = point3(0.0, 0.0, 0.0);
         vfov = 20.0;
@@ -213,6 +221,16 @@ fn random_scene() -> HittableList {
 
     let material3 = Rc::new(Metal::new(color(0.7, 0.6, 0.5), 0.0));
     world.add(Box::new(Sphere::new(point3(4.0, 1.0, 0.0), 1.0, material3)));
+
+    world
+}
+
+fn earth() -> HittableList {
+    let mut world = HittableList::new();
+
+    let texture = Rc::new(ImageTexture::new("earthmap.jpg"));
+    let surface = Rc::new(Lambertian::new_from_texture(texture));
+    world.add(Box::new(Sphere::new(point3(0.0, 0.0, 0.0), 2.0, surface)));
 
     world
 }
