@@ -28,6 +28,20 @@ impl Perlin {
         }
     }
 
+    pub fn turb(&self, p: &Point3, depth: u32) -> f32 {
+        let mut accum: f32 = 0.0;
+        let mut tp = *p;
+        let mut weight: f32 = 1.0;
+
+        for _ in 0..depth {
+            accum += weight * self.noise(&tp);
+            weight *= 0.5;
+            tp *= 2.0;
+        }
+
+        accum.abs()
+    }
+
     pub fn noise(&self, p: &Point3) -> f32 {
         let u = p.x - p.x.floor();
         let v = p.y - p.y.floor();
