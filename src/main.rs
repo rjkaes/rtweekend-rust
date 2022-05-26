@@ -26,9 +26,17 @@ fn main() -> io::Result<()> {
     //     aperture = 0.1;
     // }
 
-    // Two Spheres
+    // // Two Spheres
+    // {
+    //     world = two_spheres();
+    //     lookfrom = point3(13.0, 2.0, 3.0);
+    //     lookat = point3(0.0, 0.0, 0.0);
+    //     vfov = 20.0;
+    // }
+
+    // Two Perlin Spheres
     {
-        world = two_spheres();
+        world = two_perlin_spheres();
         lookfrom = point3(13.0, 2.0, 3.0);
         lookat = point3(0.0, 0.0, 0.0);
         vfov = 20.0;
@@ -122,6 +130,26 @@ fn two_spheres() -> HittableList {
         point3(0.0, 10.0, 0.0),
         10.0,
         lambertian,
+    )));
+
+    world
+}
+
+fn two_perlin_spheres() -> HittableList {
+    let mut world = HittableList::new();
+
+    let pertext = Rc::new(NoiseTexture::new());
+    let lambertian = Rc::new(Lambertian::new_from_texture(pertext));
+
+    world.add(Box::new(Sphere::new(
+        point3(0.0, -1000.0, 0.0),
+        1000.0,
+        lambertian.clone(),
+    )));
+    world.add(Box::new(Sphere::new(
+        point3(0.0, 2.0, 0.0),
+        2.0,
+        lambertian.clone(),
     )));
 
     world

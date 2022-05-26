@@ -1,3 +1,4 @@
+use crate::perlin::*;
 use crate::vec3::*;
 use std::rc::Rc;
 
@@ -51,9 +52,28 @@ impl Texture for CheckerTexture {
     fn value(&self, u: f32, v: f32, p: &Point3) -> Color {
         let sines = (10.0 * p.x).sin() * (10.0 * p.y).sin() * (10.0 * p.z).sin();
         if sines < 0.0 {
-            self.odd.value(u, v, &p)
+            self.odd.value(u, v, p)
         } else {
-            self.even.value(u, v, &p)
+            self.even.value(u, v, p)
         }
+    }
+}
+
+pub struct NoiseTexture {
+    noise: Perlin,
+}
+
+impl NoiseTexture {
+    pub fn new() -> Self {
+        Self {
+            noise: Perlin::new(),
+        }
+    }
+}
+
+impl Texture for NoiseTexture {
+    #[inline]
+    fn value(&self, _u: f32, _v: f32, p: &Point3) -> Color {
+        color(1.0, 1.0, 1.0) * self.noise.noise(p)
     }
 }
