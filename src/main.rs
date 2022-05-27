@@ -8,10 +8,11 @@ use rtweekend::vec3::*;
 use std::io;
 
 fn main() -> io::Result<()> {
-    const ASPECT_RATIO: f32 = 16.0 / 9.0;
+    // const ASPECT_RATIO: f32 = 16.0 / 9.0;
+    const ASPECT_RATIO: f32 = 1.0;
 
     // Image
-    const IMAGE_WIDTH: u32 = 400;
+    const IMAGE_WIDTH: u32 = 600;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f32 / ASPECT_RATIO) as u32;
     const MAX_DEPTH: i32 = 50;
 
@@ -21,7 +22,8 @@ fn main() -> io::Result<()> {
     // let scene = scenes::two_spheres();
     // let scene = scenes::two_perlin_spheres();
     // let scene = scenes::earth();
-    let scene = scenes::simple_light();
+    // let scene = scenes::simple_light();
+    let scene = scenes::cornell_box();
 
     // Camera
     const VUP: Vec3 = vec3(0.0, 1.0, 0.0);

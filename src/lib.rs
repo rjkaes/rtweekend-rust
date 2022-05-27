@@ -1,4 +1,5 @@
 pub mod camera;
+pub mod cube;
 pub mod hittable;
 pub mod hittable_list;
 pub mod material;
@@ -11,6 +12,7 @@ pub mod texture;
 pub mod vec3;
 
 // Re-export all the public traits, structs, methods.
+pub use crate::cube::*;
 pub use crate::hittable::*;
 pub use crate::hittable_list::*;
 pub use crate::material::*;

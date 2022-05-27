@@ -234,3 +234,72 @@ pub fn simple_light() -> Scene {
         aperture: APERTURE,
     }
 }
+
+pub fn cornell_box() -> Scene {
+    let mut world = HittableList::new();
+
+    let red = Rc::new(Lambertian::new(color(0.65, 0.05, 0.05)));
+    let white = Rc::new(Lambertian::new(color(0.73, 0.73, 0.73)));
+    let green = Rc::new(Lambertian::new(color(0.12, 0.45, 0.15)));
+    let light = Rc::new(DiffuseLight::new(color(15.0, 15.0, 15.0)));
+
+    world.add(Box::new(rect::YZ::new(
+        0.0, 555.0, 0.0, 555.0, 555.0, green,
+    )));
+    world.add(Box::new(rect::YZ::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    world.add(Box::new(rect::XZ::new(
+        213.0, 343.0, 227.0, 332.0, 554.0, light,
+    )));
+    world.add(Box::new(rect::XZ::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        0.0,
+        white.clone(),
+    )));
+    world.add(Box::new(rect::XZ::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+    world.add(Box::new(rect::XY::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+
+    let cube1 = Cube::new(
+        point3(0.0, 0.0, 0.0),
+        point3(165.0, 330.0, 165.0),
+        white.clone(),
+    );
+    let cube1_rotated = RotateY::new(Box::new(cube1), 15.0);
+    let cube1_translated = Translate::new(Box::new(cube1_rotated), vec3(265.0, 0.0, 295.0));
+    world.add(Box::new(cube1_translated));
+
+    let cube2 = Cube::new(
+        point3(0.0, 0.0, 0.0),
+        point3(165.0, 165.0, 165.0),
+        white.clone(),
+    );
+    let cube2_rotated = RotateY::new(Box::new(cube2), -18.0);
+    let cube2_translated = Translate::new(Box::new(cube2_rotated), vec3(130.0, 0.0, 65.0));
+    world.add(Box::new(cube2_translated));
+
+    Scene {
+        world,
+        samples_per_pixel: 200,
+        background: color(0.0, 0.0, 0.0),
+        lookfrom: point3(278.0, 278.0, -800.0),
+        lookat: point3(278.0, 278.0, 0.0),
+        vfov: 40.0,
+        aperture: APERTURE,
+    }
+}

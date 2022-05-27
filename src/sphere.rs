@@ -63,12 +63,7 @@ impl Hittable for Sphere {
 
         let p = r.at(root);
         let outward_normal = (p - self.center) / self.radius;
-        let front_face = r.direction.dot(&outward_normal) < 0.0;
-        let normal = if front_face {
-            outward_normal
-        } else {
-            -outward_normal
-        };
+        let (normal, front_face) = face_normal_and_is_front(r, outward_normal);
 
         let (u, v) = Sphere::get_uv(&outward_normal);
 
@@ -145,13 +140,7 @@ impl Hittable for MovingSphere {
 
         let p = r.at(root);
         let outward_normal = (p - self.center(r.time)) / self.radius;
-        let front_face = r.direction.dot(&outward_normal) < 0.0;
-        let normal = if front_face {
-            outward_normal
-        } else {
-            -outward_normal
-        };
-
+        let (normal, front_face) = face_normal_and_is_front(r, outward_normal);
         let (u, v) = Sphere::get_uv(&outward_normal);
 
         let rec = HitRecord {
