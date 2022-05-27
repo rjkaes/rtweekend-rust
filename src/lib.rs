@@ -7,6 +7,7 @@ pub mod ray;
 pub mod sphere;
 pub mod texture;
 pub mod vec3;
+pub mod xy_rect;
 
 // Re-export all the public traits, structs, methods.
 pub use crate::camera::*;
@@ -18,6 +19,7 @@ pub use crate::ray::*;
 pub use crate::sphere::*;
 pub use crate::texture::*;
 pub use crate::vec3::*;
+pub use crate::xy_rect::*;
 
 pub fn random() -> f32 {
     rand::random::<f32>()
