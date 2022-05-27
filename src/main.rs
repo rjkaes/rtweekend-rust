@@ -1,6 +1,11 @@
-use rtweekend::*;
+use rtweekend::camera::*;
+use rtweekend::hittable::*;
+use rtweekend::random;
+use rtweekend::ray::*;
+use rtweekend::scenes;
+use rtweekend::vec3::*;
+
 use std::io;
-use std::rc::Rc;
 
 fn main() -> io::Result<()> {
     const ASPECT_RATIO: f32 = 16.0 / 9.0;
@@ -8,64 +13,27 @@ fn main() -> io::Result<()> {
     // Image
     const IMAGE_WIDTH: u32 = 400;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f32 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: i32 = 100;
     const MAX_DEPTH: i32 = 50;
 
-    let world;
-    let lookfrom;
-    let lookat;
-    let vfov;
-    let mut aperture = 0.0;
-    let background;
-
-    // // Random Scene
-    // {
-    //     world = random_scene();
-    //     background = color(0.7, 0.8, 1.0);
-    //     lookfrom = point3(13.0, 2.0, 3.0);
-    //     lookat = point3(0.0, 0.0, 0.0);
-    //     vfov = 20.0;
-    //     aperture = 0.1;
-    // }
-
-    // // Two Spheres
-    // {
-    //     world = two_spheres();
-    //     background = color(0.7, 0.8, 1.0);
-    //     lookfrom = point3(13.0, 2.0, 3.0);
-    //     lookat = point3(0.0, 0.0, 0.0);
-    //     vfov = 20.0;
-    // }
-
-    // // Two Perlin Spheres
-    // {
-    //     world = two_perlin_spheres();
-    //     background = color(0.7, 0.8, 1.0);
-    //     lookfrom = point3(13.0, 2.0, 3.0);
-    //     lookat = point3(0.0, 0.0, 0.0);
-    //     vfov = 20.0;
-    // }
-
-    // Earth!
-    {
-        world = earth();
-        background = color(0.7, 0.8, 1.0);
-        lookfrom = point3(13.0, 2.0, 3.0);
-        lookat = point3(0.0, 0.0, 0.0);
-        vfov = 20.0;
-    }
+    // let scene = scenes::test();
+    // let scene = scenes::random();
+    // let scene = scenes::simple_light();
+    // let scene = scenes::two_spheres();
+    // let scene = scenes::two_perlin_spheres();
+    // let scene = scenes::earth();
+    let scene = scenes::simple_light();
 
     // Camera
-    let vup = vec3(0.0, 1.0, 0.0);
+    const VUP: Vec3 = vec3(0.0, 1.0, 0.0);
     const DIST_TO_FOCUS: f32 = 10.0;
 
     let camera = Camera::new(
-        lookfrom,
-        lookat,
-        vup,
-        vfov,
+        scene.lookfrom,
+        scene.lookat,
+        VUP,
+        scene.vfov,
         ASPECT_RATIO,
-        aperture,
+        scene.aperture,
         DIST_TO_FOCUS,
         0.0,
         1.0,
@@ -81,163 +49,22 @@ fn main() -> io::Result<()> {
         for i in 0..IMAGE_WIDTH {
             let mut pixel_color = color(0.0, 0.0, 0.0);
 
-            for _ in 0..SAMPLES_PER_PIXEL {
+            for _ in 0..(scene.samples_per_pixel) {
                 let u = (i as f32 + random()) / ((IMAGE_WIDTH - 1) as f32);
                 let v = (j as f32 + random()) / ((IMAGE_HEIGHT - 1) as f32);
 
                 let r = camera.get_ray(u, v);
 
-                pixel_color += ray_color(r, background, &world, MAX_DEPTH);
+                pixel_color += ray_color(r, scene.background, &scene.world, MAX_DEPTH);
             }
 
-            write_color(pixel_color, SAMPLES_PER_PIXEL);
+            write_color(pixel_color, scene.samples_per_pixel);
         }
     }
 
     eprintln!("\nDone.");
 
     Ok(())
-}
-
-// Static test scene used for profiling.
-fn test_scene() -> HittableList {
-    let mut world = HittableList::new();
-
-    let ground = Rc::new(Lambertian::new(color(0.8, 0.8, 0.0)));
-    let center = Rc::new(Lambertian::new(color(0.1, 0.2, 0.5)));
-    let left = Rc::new(Dielectric::new(1.5));
-    let right = Rc::new(Metal::new(color(0.8, 0.6, 0.2), 0.0));
-
-    world.add(Box::new(Sphere::new(
-        point3(0.0, -100.5, -1.0),
-        100.0,
-        ground,
-    )));
-    world.add(Box::new(Sphere::new(point3(0.0, 0.0, -1.0), 0.5, center)));
-    world.add(Box::new(Sphere::new(
-        point3(-1.0, 0.0, -1.0),
-        0.5,
-        left.clone(),
-    )));
-    world.add(Box::new(Sphere::new(point3(-1.0, 0.0, -1.0), -0.45, left)));
-    world.add(Box::new(Sphere::new(point3(1.0, 0.0, -1.0), 0.5, right)));
-
-    world
-}
-
-fn two_spheres() -> HittableList {
-    let mut world = HittableList::new();
-
-    let checker = Rc::new(CheckerTexture::from_color(
-        color(0.2, 0.3, 0.1),
-        color(0.9, 0.9, 0.9),
-    ));
-    let lambertian = Rc::new(Lambertian::new_from_texture(checker));
-
-    world.add(Box::new(Sphere::new(
-        point3(0.0, -10.0, 0.0),
-        10.0,
-        lambertian.clone(),
-    )));
-    world.add(Box::new(Sphere::new(
-        point3(0.0, 10.0, 0.0),
-        10.0,
-        lambertian,
-    )));
-
-    world
-}
-
-fn two_perlin_spheres() -> HittableList {
-    let mut world = HittableList::new();
-
-    let pertext = Rc::new(NoiseTexture::new(4.0));
-    let lambertian = Rc::new(Lambertian::new_from_texture(pertext));
-
-    world.add(Box::new(Sphere::new(
-        point3(0.0, -1000.0, 0.0),
-        1000.0,
-        lambertian.clone(),
-    )));
-    world.add(Box::new(Sphere::new(
-        point3(0.0, 2.0, 0.0),
-        2.0,
-        lambertian.clone(),
-    )));
-
-    world
-}
-
-fn random_scene() -> HittableList {
-    let mut world = HittableList::new();
-
-    let checker = Rc::new(CheckerTexture::from_color(
-        color(0.2, 0.3, 0.1),
-        color(0.9, 0.9, 0.9),
-    ));
-
-    let ground_material = Rc::new(Lambertian::new_from_texture(checker));
-    world.add(Box::new(Sphere::new(
-        point3(0.0, -1000.0, 0.0),
-        1000.0,
-        ground_material,
-    )));
-
-    let shift = point3(4.0, 0.2, 0.0);
-
-    for a in -11..11 {
-        for b in -11..11 {
-            let choose_mat = random();
-            let center = point3(a as f32 + 0.9 * random(), 0.2, b as f32 + 0.9 * random());
-
-            if (center - shift).length() > 0.9 {
-                if choose_mat < 0.8 {
-                    // diffuse
-                    let albedo = Color::random() * Color::random();
-                    let material = Rc::new(Lambertian::new(albedo));
-                    let center2 = center + vec3(0.0, random_range(0.0, 0.5), 0.0);
-                    world.add(Box::new(MovingSphere::new(
-                        center, center2, 0.0, 1.0, 0.2, material,
-                    )));
-                } else if choose_mat < 0.95 {
-                    // metal
-                    let albedo = Color::random_range(0.5, 1.0);
-                    let fuzz = random_range(0.0, 0.5);
-                    let material = Rc::new(Metal::new(albedo, fuzz));
-                    world.add(Box::new(Sphere::new(center, 0.2, material)));
-                } else {
-                    // glass
-                    let material = Rc::new(Dielectric::new(1.5));
-                    world.add(Box::new(Sphere::new(center, 0.2, material)));
-                }
-            }
-        }
-    }
-
-    let material1 = Rc::new(Dielectric::new(1.5));
-    world.add(Box::new(Sphere::new(point3(0.0, 1.0, 0.0), 1.0, material1)));
-
-    let material2 = Rc::new(Lambertian::new(color(0.4, 0.2, 0.1)));
-    world.add(Box::new(Sphere::new(
-        point3(-4.0, 1.0, 0.0),
-        1.0,
-        material2,
-    )));
-
-    let material3 = Rc::new(Metal::new(color(0.7, 0.6, 0.5), 0.0));
-    world.add(Box::new(Sphere::new(point3(4.0, 1.0, 0.0), 1.0, material3)));
-
-    world
-}
-
-fn earth() -> HittableList {
-    let mut world = HittableList::new();
-
-    let texture = Rc::new(ImageTexture::new("earthmap.jpg"));
-    let surface = Rc::new(Lambertian::new_from_texture(texture));
-    world.add(Box::new(Sphere::new(point3(0.0, 0.0, 0.0), 2.0, surface)));
-
-    world
 }
 
 fn ray_color(initial: Ray, background: Color, world: &dyn Hittable, depth: i32) -> Color {
