@@ -1,5 +1,3 @@
-use rand::Rng;
-
 pub mod camera;
 pub mod hittable;
 pub mod hittable_list;
@@ -25,7 +23,8 @@ pub fn random() -> f32 {
     rand::random::<f32>()
 }
 
+#[inline]
 pub fn random_range(min: f32, max: f32) -> f32 {
-    let mut rng = rand::thread_rng();
-    rng.gen_range(min..max)
+    // Returns a random real in [min,max).
+    min + (max - min) * random()
 }
