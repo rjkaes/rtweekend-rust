@@ -51,6 +51,30 @@ impl Perlin {
         let yint = p.y.floor() as i32;
         let zint = p.z.floor() as i32;
 
+        // TODO: It's wasteful to initialize the vec3s when we're going to
+        // replace them below.
+        let mut c: [Vec3; 8] = [vec3(0.0, 0.0, 0.0); 8];
+
+        #[inline(always)]
+        fn idx(i: i32, j: i32, k: i32) -> usize {
+            (k * 4 + j * 2 + i) as usize
+        }
+
+        for i in 0..2 {
+            for j in 0..2 {
+                for k in 0..2 {
+                    let perm_x_idx = ((xint + i) & 255) as usize;
+                    let perm_y_idx = ((yint + j) & 255) as usize;
+                    let perm_z_idx = ((zint + k) & 255) as usize;
+
+                    c[idx(i, j, k)] = self.ranvec[(self.perm_x[perm_x_idx]
+                        ^ self.perm_y[perm_y_idx]
+                        ^ self.perm_z[perm_z_idx])
+                        as usize];
+                }
+            }
+        }
+
         // Hermitian Smoothing
         let uu = u * u * (3.0 - 2.0 * u);
         let vv = v * v * (3.0 - 2.0 * v);
@@ -62,19 +86,13 @@ impl Perlin {
         for i in 0..2 {
             for j in 0..2 {
                 for k in 0..2 {
-                    let x_idx = ((xint + i) & 255) as usize;
-                    let y_idx = ((yint + j) & 255) as usize;
-                    let z_idx = ((zint + k) & 255) as usize;
-
-                    let rv = self.ranvec
-                        [(self.perm_x[x_idx] ^ self.perm_y[y_idx] ^ self.perm_z[z_idx]) as usize];
-
                     let weight_v = vec3(u - i as f32, v - j as f32, w - k as f32);
+                    let rv = c[idx(i, j, k)];
 
                     accum += (i as f32 * uu + (1.0 - i as f32) * (1.0 - uu))
                         * (j as f32 * vv + (1.0 - j as f32) * (1.0 - vv))
                         * (k as f32 * ww + (1.0 - k as f32) * (1.0 - ww))
-                        * weight_v.dot(&rv);
+                        * rv.dot(&weight_v);
                 }
             }
         }
@@ -86,8 +104,8 @@ impl Perlin {
         let mut indices: Vec<i32> = Vec::with_capacity(POINT_COUNT as usize);
         indices.extend(0..POINT_COUNT);
 
-        for i in 0..POINT_COUNT {
-            let j = rng.gen_range(i..POINT_COUNT);
+        for i in (1..=(POINT_COUNT - 1)).rev() {
+            let j = rng.gen_range(0..i);
             indices.swap(i as usize, j as usize);
         }
 
