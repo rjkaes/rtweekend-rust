@@ -67,28 +67,47 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn ray_color(initial: Ray, background: Color, world: &dyn Hittable, depth: i32) -> Color {
-    let mut r = initial;
-    let mut c = color(1.0, 1.0, 1.0);
-
-    for _ in 0..depth {
-        if let Some(rec) = world.hit(&r, 0.001, f32::INFINITY) {
-            let emitted = rec.material.emitted(rec.u, rec.v, &rec.p);
-
-            if let Some((attenuation, scattered)) = rec.material.scatter(&r, &rec) {
-                c = emitted + attenuation * c;
-                r = scattered;
-            } else {
-                return emitted;
-            }
-        } else {
-            return c * background;
-        }
+fn ray_color(r: Ray, background: Color, world: &dyn Hittable, depth: i32) -> Color {
+    if depth <= 0 {
+        return color(0.0, 0.0, 0.0);
     }
 
-    // If we exited the loop, that means we hit nothing, so return black.
-    color(0.0, 0.0, 0.0)
+    if let Some(rec) = world.hit(&r, 0.001, f32::INFINITY) {
+        let emitted = rec.material.emitted(rec.u, rec.v, &rec.p);
+
+        if let Some((attenuation, scattered)) = rec.material.scatter(&r, &rec) {
+            emitted + attenuation * ray_color(scattered, background, world, depth - 1)
+        } else {
+            emitted
+        }
+    } else {
+        background
+    }
 }
+
+// FIXME: This is broken now that objects can emit light!
+// fn ray_color(initial: Ray, background: Color, world: &dyn Hittable, depth: i32) -> Color {
+//     let mut r = initial;
+//     let mut c = color(1.0, 1.0, 1.0);
+
+//     for _ in 0..depth {
+//         if let Some(rec) = world.hit(&r, 0.001, f32::INFINITY) {
+//             let emitted = rec.material.emitted(rec.u, rec.v, &rec.p);
+
+//             if let Some((attenuation, scattered)) = rec.material.scatter(&r, &rec) {
+//                 c = emitted + attenuation * c;
+//                 r = scattered;
+//             } else {
+//                 return emitted;
+//             }
+//         } else {
+//             return c * background;
+//         }
+//     }
+
+//     // If we exited the loop, that means we hit nothing, so return black.
+//     color(0.0, 0.0, 0.0)
+// }
 
 fn write_color(pixel_color: Color, samples_per_pixel: i32) {
     let r = pixel_color.x;
