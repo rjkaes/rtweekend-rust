@@ -222,7 +222,7 @@ pub fn simple_light() -> Scene {
     )));
 
     let difflight = Rc::new(DiffuseLight::new(color(4.0, 4.0, 4.0)));
-    world.add(Box::new(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, difflight)));
+    world.add(Box::new(rect::XY::new(3.0, 5.0, 1.0, 3.0, -2.0, difflight)));
 
     Scene {
         world,

@@ -4,14 +4,13 @@ pub mod hittable_list;
 pub mod material;
 pub mod perlin;
 pub mod ray;
+pub mod rect;
 pub mod scenes;
 pub mod sphere;
 pub mod texture;
 pub mod vec3;
-pub mod xy_rect;
 
 // Re-export all the public traits, structs, methods.
-pub use crate::camera::*;
 pub use crate::hittable::*;
 pub use crate::hittable_list::*;
 pub use crate::material::*;
@@ -20,7 +19,6 @@ pub use crate::ray::*;
 pub use crate::sphere::*;
 pub use crate::texture::*;
 pub use crate::vec3::*;
-pub use crate::xy_rect::*;
 
 pub fn random() -> f32 {
     rand::random::<f32>()

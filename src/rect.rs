@@ -4,7 +4,7 @@ use crate::ray::*;
 use crate::vec3::*;
 use std::rc::Rc;
 
-pub struct XYRect {
+pub struct XY {
     material: Rc<dyn Material>,
     x0: f32,
     x1: f32,
@@ -13,7 +13,7 @@ pub struct XYRect {
     k: f32,
 }
 
-impl XYRect {
+impl XY {
     pub fn new(x0: f32, x1: f32, y0: f32, y1: f32, k: f32, material: Rc<dyn Material>) -> Self {
         Self {
             material,
@@ -26,7 +26,7 @@ impl XYRect {
     }
 }
 
-impl Hittable for XYRect {
+impl Hittable for XY {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let t = (self.k - r.origin.z) / r.direction.z;
 
