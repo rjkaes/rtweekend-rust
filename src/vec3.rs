@@ -1,4 +1,4 @@
-#[derive(Copy, Clone, Default, Debug)]
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct Vec3 {
     pub x: f32,
     pub y: f32,
@@ -47,7 +47,7 @@ impl Vec3 {
         r_out_perp + r_out_parallel
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn unit(&self) -> Vec3 {
         *self / self.length()
     }
@@ -57,7 +57,7 @@ impl Vec3 {
         self.length_squared().sqrt()
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn length_squared(&self) -> f32 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
@@ -130,6 +130,7 @@ impl std::ops::DivAssign<f32> for Vec3 {
     }
 }
 
+// NOTE: Hadamard Product (not cross or dot!)
 impl std::ops::Mul<Vec3> for Vec3 {
     type Output = Vec3;
 
@@ -217,5 +218,136 @@ impl std::ops::Sub<Vec3> for &Vec3 {
     #[inline]
     fn sub(self, rhs: Vec3) -> Vec3 {
         vec3(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn add() {
+        let a = vec3(1.0, 1.0, 1.0);
+        let b = vec3(2.0, 2.0, 2.0);
+
+        let r = a + b;
+
+        assert_eq!(r, vec3(3.0, 3.0, 3.0));
+    }
+
+    #[test]
+    fn add_assign() {
+        let mut a = vec3(1.0, 1.0, 1.0);
+        a += vec3(2.0, 2.0, 2.0);
+
+        assert_eq!(a, vec3(3.0, 3.0, 3.0));
+    }
+
+    #[test]
+    fn div_by_float() {
+        let a = vec3(2.0, 2.0, 2.0);
+        let r = a / 2.0;
+
+        assert_eq!(r, vec3(1.0, 1.0, 1.0));
+    }
+
+    #[test]
+    fn div_assign_by_float() {
+        let mut a = vec3(2.0, 2.0, 2.0);
+
+        a /= 2.0;
+
+        assert_eq!(a, vec3(1.0, 1.0, 1.0));
+    }
+
+    #[test]
+    fn hadamard_product() {
+        let a = vec3(2.0, 3.0, 4.0);
+        let b = vec3(3.0, 4.0, 5.0);
+
+        let r = a * b;
+
+        assert_eq!(r, vec3(6.0, 12.0, 20.0));
+    }
+
+    #[test]
+    fn scalar_multiplication() {
+        let a = vec3(1.0, 2.0, 3.0);
+
+        assert_eq!(a * 2.0, vec3(2.0, 4.0, 6.0));
+        assert_eq!(2.0 * a, vec3(2.0, 4.0, 6.0));
+    }
+
+    #[test]
+    fn multiply_assign() {
+        let mut a = vec3(1.0, 2.0, 3.0);
+
+        a *= 2.0;
+
+        assert_eq!(a, vec3(2.0, 4.0, 6.0));
+    }
+
+    #[test]
+    fn negate() {
+        let a = vec3(1.0, 2.0, 3.0);
+
+        assert_eq!(-a, vec3(-1.0, -2.0, -3.0));
+    }
+
+    #[test]
+    fn subtraction() {
+        let a = vec3(1.0, 2.0, 3.0);
+        let b = vec3(2.0, 3.0, 4.0);
+
+        let s = a - b;
+        let r = a + (-b); // Definition of vector subtraction
+
+        assert_eq!(s, r);
+    }
+
+    #[test]
+    fn near_zero() {
+        assert!(vec3(0.0, 0.0, 0.0).near_zero());
+    }
+
+    #[test]
+    fn scales_to_unit() {
+        let a = vec3(3.0, 4.0, 5.0);
+        let u = a.unit();
+
+        let length = (u.x * u.x + u.y * u.y + u.z * u.z).sqrt();
+
+        assert_eq!(1.0, length);
+    }
+
+    #[test]
+    fn dot_product() {
+        let a = vec3(1.0, 2.0, 3.0);
+        let b = vec3(3.0, 2.0, 1.0);
+
+        // Definition of a dot product: axbx + ayby + azbz
+        let def = a.x * b.x + a.y * b.y + a.z * b.z;
+
+        assert_eq!(a.dot(&b), def);
+    }
+
+    #[test]
+    fn cross_product() {
+        let b = vec3(1.0, 2.0, 3.0);
+        let c = vec3(3.0, 2.0, 1.0);
+
+        // Definition of a cross product (https://en.wikipedia.org/wiki/Cross_product#Mnemonic)
+        // a = b x c
+        // ax = bycz - bzcy
+        // ay = bzcx - bxcz
+        // az = bxcy - bycx
+
+        let a = vec3(
+            b.y * c.z - b.z * c.y,
+            b.z * c.x - b.x * c.z,
+            b.x * c.y - b.y * c.x,
+        );
+
+        assert_eq!(b.cross(&c), a);
     }
 }
