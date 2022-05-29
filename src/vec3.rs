@@ -221,6 +221,31 @@ impl std::ops::Sub<Vec3> for &Vec3 {
     }
 }
 
+impl std::ops::Index<usize> for Vec3 {
+    type Output = f32;
+
+    #[inline]
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("Invalid index into Vec3"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Vec3 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("Invalid index into Vec3"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

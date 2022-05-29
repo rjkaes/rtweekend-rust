@@ -1,3 +1,4 @@
+use crate::aabb::*;
 use crate::hittable::*;
 use crate::material::*;
 use crate::ray::*;
@@ -58,6 +59,15 @@ impl Hittable for XY {
             front_face,
         })
     }
+
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
+        // The bounding box must have non-zero width in each dimension, so pad the Z
+        // dimension a small amount.
+        Some(aabb(
+            point3(self.x0, self.y0, self.k - 0.0001),
+            point3(self.x1, self.y1, self.k + 0.0001),
+        ))
+    }
 }
 
 pub struct XZ {
@@ -114,6 +124,15 @@ impl Hittable for XZ {
             front_face,
         })
     }
+
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
+        // The bounding box must have non-zero width in each dimension, so pad the Y
+        // dimension a small amount.
+        Some(aabb(
+            point3(self.x0, self.k - 0.0001, self.z0),
+            point3(self.x1, self.k + 0.0001, self.z1),
+        ))
+    }
 }
 
 pub struct YZ {
@@ -168,5 +187,14 @@ impl Hittable for YZ {
             v,
             front_face,
         })
+    }
+
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
+        // The bounding box must have non-zero width in each dimension, so pad the X
+        // dimension a small amount.
+        Some(aabb(
+            point3(self.k - 0.0001, self.y0, self.z0),
+            point3(self.k + 0.0001, self.y0, self.z1),
+        ))
     }
 }

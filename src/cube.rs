@@ -1,3 +1,4 @@
+use crate::aabb::*;
 use crate::hittable::*;
 use crate::hittable_list::*;
 use crate::material::*;
@@ -79,5 +80,9 @@ impl Cube {
 impl Hittable for Cube {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         self.sides.hit(r, t_min, t_max)
+    }
+
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
+        Some(aabb(self.min, self.max))
     }
 }

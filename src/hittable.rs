@@ -1,3 +1,4 @@
+use crate::aabb::*;
 use crate::material::*;
 use crate::ray::*;
 use crate::vec3::*;
@@ -5,6 +6,7 @@ use std::rc::Rc;
 
 pub trait Hittable {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB>;
 }
 
 // TODO: Should return an Enum rather than a tuple with a bool!
@@ -54,22 +56,70 @@ impl Hittable for Translate {
             None
         }
     }
+
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
+        if let Some(output_box) = self.instance.bounding_box(time0, time1) {
+            Some(aabb(
+                output_box.min + self.offset,
+                output_box.max + self.offset,
+            ))
+        } else {
+            None
+        }
+    }
 }
 
 pub struct RotateY {
     sin_theta: f32,
     cos_theta: f32,
     instance: Box<dyn Hittable>,
+    bbox: Option<AABB>,
 }
 
 impl RotateY {
     pub fn new(instance: Box<dyn Hittable>, angle: f32) -> Self {
         let radians = angle.to_radians();
+        let sin_theta = radians.sin();
+        let cos_theta = radians.cos();
+
+        let bbox = if let Some(bbox) = instance.bounding_box(0.0, 1.0) {
+            let mut min = point3(f32::INFINITY, f32::INFINITY, f32::INFINITY);
+            let mut max = point3(-f32::INFINITY, -f32::INFINITY, -f32::INFINITY);
+
+            for i in 0..2 {
+                for j in 0..2 {
+                    for k in 0..2 {
+                        let fi = i as f32;
+                        let fj = j as f32;
+                        let fk = k as f32;
+
+                        let x = fi * bbox.max.x + (1.0 - fi) * bbox.min.x;
+                        let y = fj * bbox.max.y + (1.0 - fj) * bbox.min.y;
+                        let z = fk * bbox.max.z + (1.0 - fk) * bbox.min.z;
+
+                        let newx = cos_theta * x + sin_theta * z;
+                        let newz = -sin_theta * x + cos_theta * z;
+
+                        let tester = vec3(newx, y, newz);
+
+                        for c in 0..3 {
+                            min[c] = min[c].min(tester[c]);
+                            max[c] = max[c].max(tester[c]);
+                        }
+                    }
+                }
+            }
+
+            Some(aabb(min, max))
+        } else {
+            None
+        };
 
         Self {
             instance,
-            sin_theta: radians.sin(),
-            cos_theta: radians.cos(),
+            bbox,
+            sin_theta,
+            cos_theta,
         }
     }
 }
@@ -108,5 +158,9 @@ impl Hittable for RotateY {
         } else {
             None
         }
+    }
+
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
+        self.bbox
     }
 }

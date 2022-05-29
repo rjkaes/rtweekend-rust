@@ -1,3 +1,4 @@
+use crate::aabb::*;
 use crate::hittable::*;
 use crate::material::*;
 use crate::ray::*;
@@ -79,6 +80,11 @@ impl Hittable for Sphere {
 
         Some(rec)
     }
+
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
+        let radius = vec3(self.radius, self.radius, self.radius);
+        Some(aabb(self.center - radius, self.center + radius))
+    }
 }
 
 pub struct MovingSphere {
@@ -154,5 +160,15 @@ impl Hittable for MovingSphere {
         };
 
         Some(rec)
+    }
+
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
+        let radius = vec3(self.radius, self.radius, self.radius);
+        let box0 = aabb(self.center(time0) - radius, self.center(time0) + radius);
+        let box1 = aabb(self.center(time1) - radius, self.center(time1) + radius);
+
+        let full_box = AABB::surrounding_box(&box0, &box1);
+
+        Some(full_box)
     }
 }
