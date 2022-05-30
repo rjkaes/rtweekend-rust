@@ -6,7 +6,7 @@ fn main() -> io::Result<()> {
     const ASPECT_RATIO: f32 = 1.0;
 
     // Image
-    const IMAGE_WIDTH: u32 = 400;
+    const IMAGE_WIDTH: u32 = 800;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f32 / ASPECT_RATIO) as u32;
     const MAX_DEPTH: i32 = 50;
 
@@ -18,7 +18,8 @@ fn main() -> io::Result<()> {
     // let scene = scenes::earth();
     // let scene = scenes::simple_light();
     // let scene = scenes::cornell_box();
-    let scene = scenes::cornell_smoke();
+    // let scene = scenes::cornell_smoke();
+    let scene = scenes::final_scene_the_next_week();
 
     // Camera
     const VUP: Vec3 = vec3(0.0, 1.0, 0.0);
@@ -37,7 +38,7 @@ fn main() -> io::Result<()> {
     );
 
     // Convert the world objects into a BVH
-    let world_scene = BVHNode::new(scene.world.objects.as_slice(), 0.0, 1.0);
+    let world_scene = BVHNode::new(scene.world.as_slice(), 0.0, 1.0);
 
     println!("P3");
     println!("{} {}", IMAGE_WIDTH, IMAGE_HEIGHT);
