@@ -1,10 +1,4 @@
-use rtweekend::camera::*;
-use rtweekend::hittable::*;
-use rtweekend::random;
-use rtweekend::ray::*;
-use rtweekend::scenes;
-use rtweekend::vec3::*;
-
+use rtweekend::*;
 use std::io;
 
 fn main() -> io::Result<()> {
@@ -12,7 +6,7 @@ fn main() -> io::Result<()> {
     const ASPECT_RATIO: f32 = 1.0;
 
     // Image
-    const IMAGE_WIDTH: u32 = 600;
+    const IMAGE_WIDTH: u32 = 400;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f32 / ASPECT_RATIO) as u32;
     const MAX_DEPTH: i32 = 50;
 
@@ -41,6 +35,9 @@ fn main() -> io::Result<()> {
         1.0,
     );
 
+    // Convert the world objects into a BVH
+    let world_scene = BVHNode::new(scene.world.objects.as_slice(), 0.0, 1.0);
+
     println!("P3");
     println!("{} {}", IMAGE_WIDTH, IMAGE_HEIGHT);
     println!("255");
@@ -57,7 +54,7 @@ fn main() -> io::Result<()> {
 
                 let r = camera.get_ray(u, v);
 
-                pixel_color += ray_color(r, scene.background, &scene.world, MAX_DEPTH);
+                pixel_color += ray_color(r, scene.background, &world_scene, MAX_DEPTH);
             }
 
             write_color(pixel_color, scene.samples_per_pixel);

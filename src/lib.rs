@@ -1,4 +1,5 @@
 pub mod aabb;
+pub mod bvh_node;
 pub mod camera;
 pub mod cube;
 pub mod hittable;
@@ -14,6 +15,8 @@ pub mod vec3;
 
 // Re-export all the public traits, structs, methods.
 pub use crate::aabb::*;
+pub use crate::bvh_node::*;
+pub use crate::camera::*;
 pub use crate::cube::*;
 pub use crate::hittable::*;
 pub use crate::hittable_list::*;
