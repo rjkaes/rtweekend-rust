@@ -370,3 +370,126 @@ pub fn cornell_smoke() -> Scene {
         aperture: APERTURE,
     }
 }
+
+pub fn final_scene_the_next_week() -> Scene {
+    let mut world: World = vec![];
+
+    let ground = Rc::new(Lambertian::new(color(0.48, 0.83, 0.53)));
+
+    const BOXES_PER_SIDE: usize = 20;
+    let mut boxes1: Vec<HittableInstance> = Vec::with_capacity(BOXES_PER_SIDE * BOXES_PER_SIDE);
+
+    for i in 0..BOXES_PER_SIDE {
+        for j in 0..BOXES_PER_SIDE {
+            let w = 100.0;
+            let x0 = -1000.0 + i as f32 * w;
+            let z0 = -1000.0 + j as f32 * w;
+            let y0 = 0.0;
+            let x1 = x0 + w;
+            let y1 = super::random_range(1.0, 101.0);
+            let z1 = z0 + w;
+
+            boxes1.push(Rc::new(Cube::new(
+                point3(x0, y0, z0),
+                point3(x1, y1, z1),
+                ground.clone(),
+            )));
+        }
+    }
+
+    world.push(Rc::new(BVHNode::new(boxes1.as_slice(), 0.0, 1.0)));
+
+    let light = Rc::new(DiffuseLight::new(color(7.0, 7.0, 7.0)));
+    world.push(Rc::new(rect::XZ::new(
+        123.0, 423.0, 147.0, 412.0, 554.0, light,
+    )));
+
+    let center1 = point3(400.0, 400.0, 200.0);
+    let center2 = center1 + vec3(30.0, 0.0, 0.0);
+    let moving_sphere_material = Rc::new(Lambertian::new(color(0.7, 0.3, 0.1)));
+    world.push(Rc::new(MovingSphere::new(
+        center1,
+        center2,
+        0.0,
+        1.0,
+        50.0,
+        moving_sphere_material,
+    )));
+
+    world.push(Rc::new(Sphere::new(
+        point3(260.0, 150.0, 45.0),
+        50.0,
+        Rc::new(Dielectric::new(1.5)),
+    )));
+    world.push(Rc::new(Sphere::new(
+        point3(0.0, 150.0, 145.0),
+        50.0,
+        Rc::new(Metal::new(color(0.8, 0.8, 0.9), 1.0)),
+    )));
+
+    let boundary1 = Rc::new(Sphere::new(
+        point3(360.0, 150.0, 145.0),
+        70.0,
+        Rc::new(Dielectric::new(1.5)),
+    ));
+    world.push(boundary1.clone());
+    world.push(Rc::new(ConstantMedium::with_color(
+        boundary1.clone(),
+        0.2,
+        color(0.2, 0.4, 0.9),
+    )));
+    let boundary2 = Rc::new(Sphere::new(
+        point3(0.0, 0.0, 0.0),
+        5000.0,
+        Rc::new(Dielectric::new(1.5)),
+    ));
+    world.push(Rc::new(ConstantMedium::with_color(
+        boundary2.clone(),
+        0.0001,
+        color(1.0, 1.0, 1.0),
+    )));
+
+    let emat = Rc::new(Lambertian::new_from_texture(Rc::new(ImageTexture::new(
+        "earthmap.jpg",
+    ))));
+    world.push(Rc::new(Sphere::new(
+        point3(400.0, 200.0, 400.0),
+        100.0,
+        emat.clone(),
+    )));
+    let pertext = Rc::new(NoiseTexture::new(0.1));
+    world.push(Rc::new(Sphere::new(
+        point3(220.0, 280.0, 300.0),
+        80.0,
+        Rc::new(Lambertian::new_from_texture(pertext)),
+    )));
+
+    let mut boxes2: Vec<HittableInstance> = Vec::with_capacity(1000);
+    let white = Rc::new(Lambertian::new(color(0.73, 0.73, 0.73)));
+
+    for _ in 0..1000 {
+        boxes2.push(Rc::new(Sphere::new(
+            Point3::random_range(0.0, 165.0),
+            10.0,
+            white.clone(),
+        )));
+    }
+
+    world.push(Rc::new(Translate::new(
+        Rc::new(RotateY::new(
+            Rc::new(BVHNode::new(boxes2.as_slice(), 0.0, 1.0)),
+            15.0,
+        )),
+        vec3(-100.0, 270.0, 395.0),
+    )));
+
+    Scene {
+        world,
+        samples_per_pixel: 10_000,
+        background: color(0.0, 0.0, 0.0),
+        lookfrom: point3(478.0, 278.0, -600.0),
+        lookat: point3(278.0, 278.0, 0.0),
+        vfov: 40.0,
+        aperture: APERTURE,
+    }
+}
