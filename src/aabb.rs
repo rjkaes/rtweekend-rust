@@ -2,7 +2,7 @@ use crate::ray::*;
 use crate::vec3::*;
 use std::mem;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct AABB {
     pub min: Point3,
     pub max: Point3,
@@ -14,7 +14,7 @@ impl AABB {
         Self { min, max }
     }
 
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> bool {
+    pub fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> bool {
         for a in 0..3 {
             let invd = 1.0 / r.direction[a];
 
