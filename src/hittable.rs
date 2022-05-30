@@ -4,6 +4,8 @@ use crate::ray::*;
 use crate::vec3::*;
 use std::rc::Rc;
 
+pub type HittableInstance = Rc<dyn Hittable>;
+
 pub trait Hittable {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB>;
@@ -30,11 +32,11 @@ pub struct HitRecord {
 
 pub struct Translate {
     offset: Vec3,
-    instance: Box<dyn Hittable>,
+    instance: HittableInstance,
 }
 
 impl Translate {
-    pub fn new(instance: Box<dyn Hittable>, offset: Vec3) -> Self {
+    pub fn new(instance: HittableInstance, offset: Vec3) -> Self {
         Self { instance, offset }
     }
 }
@@ -58,26 +60,21 @@ impl Hittable for Translate {
     }
 
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
-        if let Some(output_box) = self.instance.bounding_box(time0, time1) {
-            Some(aabb(
-                output_box.min + self.offset,
-                output_box.max + self.offset,
-            ))
-        } else {
-            None
-        }
+        self.instance
+            .bounding_box(time0, time1)
+            .map(|output_box| aabb(output_box.min + self.offset, output_box.max + self.offset))
     }
 }
 
 pub struct RotateY {
     sin_theta: f32,
     cos_theta: f32,
-    instance: Box<dyn Hittable>,
+    instance: HittableInstance,
     bbox: Option<AABB>,
 }
 
 impl RotateY {
-    pub fn new(instance: Box<dyn Hittable>, angle: f32) -> Self {
+    pub fn new(instance: HittableInstance, angle: f32) -> Self {
         let radians = angle.to_radians();
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();

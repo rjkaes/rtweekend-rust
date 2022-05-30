@@ -1,9 +1,9 @@
 use crate::aabb::*;
-use crate::hittable::{HitRecord, Hittable};
+use crate::hittable::*;
 use crate::ray::*;
 
 pub struct HittableList {
-    pub objects: Vec<Box<dyn Hittable>>,
+    pub objects: Vec<HittableInstance>,
 }
 
 impl HittableList {
@@ -17,7 +17,7 @@ impl HittableList {
         self.objects.clear();
     }
 
-    pub fn add(&mut self, object: Box<dyn Hittable>) {
+    pub fn add(&mut self, object: HittableInstance) {
         self.objects.push(object);
     }
 }
@@ -27,7 +27,7 @@ impl Hittable for HittableList {
         let mut hit_anything: Option<HitRecord> = None;
         let mut closest_so_far = t_max;
 
-        for object in self.objects.iter() {
+        for object in &self.objects {
             if let Some(rec) = object.hit(r, t_min, closest_so_far) {
                 closest_so_far = rec.t;
                 hit_anything = Some(rec);

@@ -25,19 +25,19 @@ pub fn test() -> Scene {
     let left = Rc::new(Dielectric::new(1.5));
     let right = Rc::new(Metal::new(color(0.8, 0.6, 0.2), 0.0));
 
-    world.add(Box::new(Sphere::new(
+    world.add(Rc::new(Sphere::new(
         point3(0.0, -100.5, -1.0),
         100.0,
         ground,
     )));
-    world.add(Box::new(Sphere::new(point3(0.0, 0.0, -1.0), 0.5, center)));
-    world.add(Box::new(Sphere::new(
+    world.add(Rc::new(Sphere::new(point3(0.0, 0.0, -1.0), 0.5, center)));
+    world.add(Rc::new(Sphere::new(
         point3(-1.0, 0.0, -1.0),
         0.5,
         left.clone(),
     )));
-    world.add(Box::new(Sphere::new(point3(-1.0, 0.0, -1.0), -0.45, left)));
-    world.add(Box::new(Sphere::new(point3(1.0, 0.0, -1.0), 0.5, right)));
+    world.add(Rc::new(Sphere::new(point3(-1.0, 0.0, -1.0), -0.45, left)));
+    world.add(Rc::new(Sphere::new(point3(1.0, 0.0, -1.0), 0.5, right)));
 
     Scene {
         world,
@@ -60,12 +60,12 @@ pub fn two_spheres() -> Scene {
     ));
     let lambertian = Rc::new(Lambertian::new_from_texture(checker));
 
-    world.add(Box::new(Sphere::new(
+    world.add(Rc::new(Sphere::new(
         point3(0.0, -10.0, 0.0),
         10.0,
         lambertian.clone(),
     )));
-    world.add(Box::new(Sphere::new(
+    world.add(Rc::new(Sphere::new(
         point3(0.0, 10.0, 0.0),
         10.0,
         lambertian,
@@ -89,12 +89,12 @@ pub fn two_perlin_spheres() -> Scene {
     let pertext = Rc::new(NoiseTexture::new(4.0));
     let lambertian = Rc::new(Lambertian::new_from_texture(pertext));
 
-    world.add(Box::new(Sphere::new(
+    world.add(Rc::new(Sphere::new(
         point3(0.0, -1000.0, 0.0),
         1000.0,
         lambertian.clone(),
     )));
-    world.add(Box::new(Sphere::new(
+    world.add(Rc::new(Sphere::new(
         point3(0.0, 2.0, 0.0),
         2.0,
         lambertian.clone(),
@@ -121,7 +121,7 @@ pub fn random() -> Scene {
     ));
 
     let ground_material = Rc::new(Lambertian::new_from_texture(checker));
-    world.add(Box::new(Sphere::new(
+    world.add(Rc::new(Sphere::new(
         point3(0.0, -1000.0, 0.0),
         1000.0,
         ground_material,
@@ -144,7 +144,7 @@ pub fn random() -> Scene {
                     let albedo = Color::random() * Color::random();
                     let material = Rc::new(Lambertian::new(albedo));
                     let center2 = center + vec3(0.0, random_range(0.0, 0.5), 0.0);
-                    world.add(Box::new(MovingSphere::new(
+                    world.add(Rc::new(MovingSphere::new(
                         center, center2, 0.0, 1.0, 0.2, material,
                     )));
                 } else if choose_mat < 0.95 {
@@ -152,28 +152,24 @@ pub fn random() -> Scene {
                     let albedo = Color::random_range(0.5, 1.0);
                     let fuzz = random_range(0.0, 0.5);
                     let material = Rc::new(Metal::new(albedo, fuzz));
-                    world.add(Box::new(Sphere::new(center, 0.2, material)));
+                    world.add(Rc::new(Sphere::new(center, 0.2, material)));
                 } else {
                     // glass
                     let material = Rc::new(Dielectric::new(1.5));
-                    world.add(Box::new(Sphere::new(center, 0.2, material)));
+                    world.add(Rc::new(Sphere::new(center, 0.2, material)));
                 }
             }
         }
     }
 
     let material1 = Rc::new(Dielectric::new(1.5));
-    world.add(Box::new(Sphere::new(point3(0.0, 1.0, 0.0), 1.0, material1)));
+    world.add(Rc::new(Sphere::new(point3(0.0, 1.0, 0.0), 1.0, material1)));
 
     let material2 = Rc::new(Lambertian::new(color(0.4, 0.2, 0.1)));
-    world.add(Box::new(Sphere::new(
-        point3(-4.0, 1.0, 0.0),
-        1.0,
-        material2,
-    )));
+    world.add(Rc::new(Sphere::new(point3(-4.0, 1.0, 0.0), 1.0, material2)));
 
     let material3 = Rc::new(Metal::new(color(0.7, 0.6, 0.5), 0.0));
-    world.add(Box::new(Sphere::new(point3(4.0, 1.0, 0.0), 1.0, material3)));
+    world.add(Rc::new(Sphere::new(point3(4.0, 1.0, 0.0), 1.0, material3)));
 
     Scene {
         world,
@@ -192,7 +188,7 @@ pub fn earth() -> Scene {
 
     let texture = Rc::new(ImageTexture::new("earthmap.jpg"));
     let surface = Rc::new(Lambertian::new_from_texture(texture));
-    world.add(Box::new(Sphere::new(point3(0.0, 0.0, 0.0), 2.0, surface)));
+    world.add(Rc::new(Sphere::new(point3(0.0, 0.0, 0.0), 2.0, surface)));
 
     Scene {
         world,
@@ -210,19 +206,19 @@ pub fn simple_light() -> Scene {
     let mut world = HittableList::new();
 
     let pertext = Rc::new(NoiseTexture::new(4.0));
-    world.add(Box::new(Sphere::new(
+    world.add(Rc::new(Sphere::new(
         point3(0.0, -1000.0, 0.0),
         1000.0,
         Rc::new(Lambertian::new_from_texture(pertext.clone())),
     )));
-    world.add(Box::new(Sphere::new(
+    world.add(Rc::new(Sphere::new(
         point3(0.0, 2.0, 0.0),
         2.0,
         Rc::new(Lambertian::new_from_texture(pertext.clone())),
     )));
 
     let difflight = Rc::new(DiffuseLight::new(color(4.0, 4.0, 4.0)));
-    world.add(Box::new(rect::XY::new(3.0, 5.0, 1.0, 3.0, -2.0, difflight)));
+    world.add(Rc::new(rect::XY::new(3.0, 5.0, 1.0, 3.0, -2.0, difflight)));
 
     Scene {
         world,
@@ -243,14 +239,12 @@ pub fn cornell_box() -> Scene {
     let green = Rc::new(Lambertian::new(color(0.12, 0.45, 0.15)));
     let light = Rc::new(DiffuseLight::new(color(15.0, 15.0, 15.0)));
 
-    world.add(Box::new(rect::YZ::new(
-        0.0, 555.0, 0.0, 555.0, 555.0, green,
-    )));
-    world.add(Box::new(rect::YZ::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
-    world.add(Box::new(rect::XZ::new(
+    world.add(Rc::new(rect::YZ::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
+    world.add(Rc::new(rect::YZ::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    world.add(Rc::new(rect::XZ::new(
         213.0, 343.0, 227.0, 332.0, 554.0, light,
     )));
-    world.add(Box::new(rect::XZ::new(
+    world.add(Rc::new(rect::XZ::new(
         0.0,
         555.0,
         0.0,
@@ -258,7 +252,7 @@ pub fn cornell_box() -> Scene {
         0.0,
         white.clone(),
     )));
-    world.add(Box::new(rect::XZ::new(
+    world.add(Rc::new(rect::XZ::new(
         0.0,
         555.0,
         0.0,
@@ -266,7 +260,7 @@ pub fn cornell_box() -> Scene {
         555.0,
         white.clone(),
     )));
-    world.add(Box::new(rect::XY::new(
+    world.add(Rc::new(rect::XY::new(
         0.0,
         555.0,
         0.0,
@@ -280,18 +274,18 @@ pub fn cornell_box() -> Scene {
         point3(165.0, 330.0, 165.0),
         white.clone(),
     );
-    let cube1_rotated = RotateY::new(Box::new(cube1), 15.0);
-    let cube1_translated = Translate::new(Box::new(cube1_rotated), vec3(265.0, 0.0, 295.0));
-    world.add(Box::new(cube1_translated));
+    let cube1_rotated = RotateY::new(Rc::new(cube1), 15.0);
+    let cube1_translated = Translate::new(Rc::new(cube1_rotated), vec3(265.0, 0.0, 295.0));
+    world.add(Rc::new(cube1_translated));
 
     let cube2 = Cube::new(
         point3(0.0, 0.0, 0.0),
         point3(165.0, 165.0, 165.0),
         white.clone(),
     );
-    let cube2_rotated = RotateY::new(Box::new(cube2), -18.0);
-    let cube2_translated = Translate::new(Box::new(cube2_rotated), vec3(130.0, 0.0, 65.0));
-    world.add(Box::new(cube2_translated));
+    let cube2_rotated = RotateY::new(Rc::new(cube2), -18.0);
+    let cube2_translated = Translate::new(Rc::new(cube2_rotated), vec3(130.0, 0.0, 65.0));
+    world.add(Rc::new(cube2_translated));
 
     Scene {
         world,

@@ -18,7 +18,7 @@ impl Cube {
     pub fn new(p0: Point3, p1: Point3, material: Rc<dyn Material>) -> Self {
         let mut sides = HittableList::new();
 
-        sides.add(Box::new(rect::XY::new(
+        sides.add(Rc::new(rect::XY::new(
             p0.x,
             p1.x,
             p0.y,
@@ -26,7 +26,7 @@ impl Cube {
             p1.z,
             material.clone(),
         )));
-        sides.add(Box::new(rect::XY::new(
+        sides.add(Rc::new(rect::XY::new(
             p0.x,
             p1.x,
             p0.y,
@@ -35,7 +35,7 @@ impl Cube {
             material.clone(),
         )));
 
-        sides.add(Box::new(rect::XZ::new(
+        sides.add(Rc::new(rect::XZ::new(
             p0.x,
             p1.x,
             p0.z,
@@ -43,7 +43,7 @@ impl Cube {
             p1.y,
             material.clone(),
         )));
-        sides.add(Box::new(rect::XZ::new(
+        sides.add(Rc::new(rect::XZ::new(
             p0.x,
             p1.x,
             p0.z,
@@ -52,7 +52,7 @@ impl Cube {
             material.clone(),
         )));
 
-        sides.add(Box::new(rect::YZ::new(
+        sides.add(Rc::new(rect::YZ::new(
             p0.y,
             p1.y,
             p0.z,
@@ -60,7 +60,7 @@ impl Cube {
             p1.x,
             material.clone(),
         )));
-        sides.add(Box::new(rect::YZ::new(
+        sides.add(Rc::new(rect::YZ::new(
             p0.y,
             p1.y,
             p0.z,
