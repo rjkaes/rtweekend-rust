@@ -5,6 +5,8 @@ use crate::ray::*;
 use crate::vec3::*;
 use std::rc::Rc;
 
+const PADDING: f32 = 0.0001;
+
 pub struct XY {
     material: Rc<dyn Material>,
     x0: f32,
@@ -64,8 +66,8 @@ impl Hittable for XY {
         // The bounding box must have non-zero width in each dimension, so pad the Z
         // dimension a small amount.
         Some(aabb(
-            point3(self.x0, self.y0, self.k - 0.0001),
-            point3(self.x1, self.y1, self.k + 0.0001),
+            point3(self.x0, self.y0, self.k - PADDING),
+            point3(self.x1, self.y1, self.k + PADDING),
         ))
     }
 }
@@ -129,8 +131,8 @@ impl Hittable for XZ {
         // The bounding box must have non-zero width in each dimension, so pad the Y
         // dimension a small amount.
         Some(aabb(
-            point3(self.x0, self.k - 0.0001, self.z0),
-            point3(self.x1, self.k + 0.0001, self.z1),
+            point3(self.x0, self.k - PADDING, self.z0),
+            point3(self.x1, self.k + PADDING, self.z1),
         ))
     }
 }
@@ -193,8 +195,8 @@ impl Hittable for YZ {
         // The bounding box must have non-zero width in each dimension, so pad the X
         // dimension a small amount.
         Some(aabb(
-            point3(self.k - 0.0001, self.y0, self.z0),
-            point3(self.k + 0.0001, self.y0, self.z1),
+            point3(self.k - PADDING, self.y0, self.z0),
+            point3(self.k + PADDING, self.y1, self.z1),
         ))
     }
 }
