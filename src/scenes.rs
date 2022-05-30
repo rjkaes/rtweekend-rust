@@ -297,3 +297,74 @@ pub fn cornell_box() -> Scene {
         aperture: APERTURE,
     }
 }
+
+pub fn cornell_smoke() -> Scene {
+    let mut world = HittableList::new();
+
+    let red = Rc::new(Lambertian::new(color(0.65, 0.05, 0.05)));
+    let white = Rc::new(Lambertian::new(color(0.73, 0.73, 0.73)));
+    let green = Rc::new(Lambertian::new(color(0.12, 0.45, 0.15)));
+    let light = Rc::new(DiffuseLight::new(color(7.0, 7.0, 7.0)));
+
+    world.add(Rc::new(rect::YZ::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
+    world.add(Rc::new(rect::YZ::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    world.add(Rc::new(rect::XZ::new(
+        113.0, 443.0, 127.0, 432.0, 554.0, light,
+    )));
+    world.add(Rc::new(rect::XZ::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        0.0,
+        white.clone(),
+    )));
+    world.add(Rc::new(rect::XZ::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+    world.add(Rc::new(rect::XY::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+
+    let cube1 = Cube::new(
+        point3(0.0, 0.0, 0.0),
+        point3(165.0, 330.0, 165.0),
+        white.clone(),
+    );
+    let cube1_rotated = RotateY::new(Rc::new(cube1), 15.0);
+    let cube1_translated = Translate::new(Rc::new(cube1_rotated), vec3(265.0, 0.0, 295.0));
+    let cube1_smoke =
+        ConstantMedium::with_color(Rc::new(cube1_translated), 0.01, color(0.0, 0.0, 0.0));
+    world.add(Rc::new(cube1_smoke));
+
+    let cube2 = Cube::new(
+        point3(0.0, 0.0, 0.0),
+        point3(165.0, 165.0, 165.0),
+        white.clone(),
+    );
+    let cube2_rotated = RotateY::new(Rc::new(cube2), -18.0);
+    let cube2_translated = Translate::new(Rc::new(cube2_rotated), vec3(130.0, 0.0, 65.0));
+    let cube2_smoke =
+        ConstantMedium::with_color(Rc::new(cube2_translated), 0.01, color(1.0, 1.0, 1.0));
+    world.add(Rc::new(cube2_smoke));
+
+    Scene {
+        world,
+        samples_per_pixel: 200,
+        background: color(0.0, 0.0, 0.0),
+        lookfrom: point3(278.0, 278.0, -800.0),
+        lookat: point3(278.0, 278.0, 0.0),
+        vfov: 40.0,
+        aperture: APERTURE,
+    }
+}

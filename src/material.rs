@@ -1,5 +1,5 @@
 use crate::hittable::HitRecord;
-use crate::ray::Ray;
+use crate::ray::*;
 use crate::texture::*;
 use crate::vec3::*;
 use std::rc::Rc;
@@ -143,6 +143,31 @@ impl Material for DiffuseLight {
 
     fn emitted(&self, u: f32, v: f32, p: &Point3) -> Color {
         self.emit.value(u, v, p)
+    }
+}
+
+pub struct Isotropic {
+    albedo: Rc<dyn Texture>,
+}
+
+impl Isotropic {
+    pub fn with_texture(a: Rc<dyn Texture>) -> Self {
+        Self { albedo: a }
+    }
+
+    pub fn with_color(c: Color) -> Self {
+        Self {
+            albedo: Rc::new(SolidColor::new(c)),
+        }
+    }
+}
+
+impl Material for Isotropic {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scattered> {
+        let color = self.albedo.value(rec.u, rec.v, &rec.p);
+        let scattered = Ray::new(rec.p, random_in_unit_sphere(), r_in.time);
+
+        Some((color, scattered))
     }
 }
 

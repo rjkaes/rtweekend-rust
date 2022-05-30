@@ -17,7 +17,8 @@ fn main() -> io::Result<()> {
     // let scene = scenes::two_perlin_spheres();
     // let scene = scenes::earth();
     // let scene = scenes::simple_light();
-    let scene = scenes::cornell_box();
+    // let scene = scenes::cornell_box();
+    let scene = scenes::cornell_smoke();
 
     // Camera
     const VUP: Vec3 = vec3(0.0, 1.0, 0.0);
